@@ -1,0 +1,33 @@
+# ── Internal scaffolding (not for public repo) ──
+EXECUTOR_PROMPT.md
+.remember/
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+# anchored to repo root only — must NOT ignore source pkg zipper_system/build/
+/build/
+/dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# ── Maya ──
+*.swatches
+*.mayaSwatches
+mayaPython.log
+*.ma.swatches
+incrementalSave/
+*.bak
+
+# ── OS / IDE ──
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-*
