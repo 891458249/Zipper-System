@@ -11,6 +11,9 @@ __pycache__/
 # anchored to repo root only — must NOT ignore source pkg zipper_system/build/
 /build/
 /dist/
+# PyInstaller installer output (the built .exe is large + reproducible via
+# tools/build_installer.bat — keep it out of the public repo).
+/installer/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

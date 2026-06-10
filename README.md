@@ -22,6 +22,20 @@
 
 ### 1. 安装
 
+**方式 A — 图形安装程序（推荐）**
+
+双击 `installer\ZipperSystemInstaller.exe`（Windows 单文件，目标机无需 Python）：
+勾选目标 Maya 版本（2022–2025，自动检测）→ `Install`。它会把模块内容复制到
+`Documents\maya\modules\ZipperSystem\` 并生成 `ZipperSystem.mod`（支持中/英、卸载、按版本增删）。
+重启 Maya 后在 Plug-in Manager 启用 `zipperSystem`（或 `cmds.loadPlugin("zipperSystem")`）。
+
+> 纯 Python om2 deformer，**全版本同一份内容、无需按版本重编**。
+
+构建安装程序自身（开发者）：运行 `tools\build_installer.bat`（内部用 PyInstaller 打包，
+产物 `installer\ZipperSystemInstaller.exe`）。命令行静默安装：`ZipperSystemInstaller.exe --headless`。
+
+**方式 B — 手动**
+
 把仓库根目录加入 Maya 的 `PYTHONPATH`（或 `sys.path`），使 `import zipper_system` 可用。
 
 ### 2. 打开 UI
