@@ -150,6 +150,42 @@ def _validate_rail(report, idx, label, rail_spec):
     return MAX_CURVE_SAMPLES
 
 
+def rail_cap(rail_spec):
+    # type: (dict) -> int
+    """Return the pair_count upper bound for one rail spec, or None if the rail
+    cannot be resolved. Used by the UI to clamp the Pair Count field (sec.6).
+    """
+    if not isinstance(rail_spec, dict):
+        return None
+    rtype = rail_spec.get("type")
+    handle = rail_spec.get("handle")
+    if not handle:
+        return None
+    if rtype == "edge":
+        try:
+            pairs, _mesh = _edge_handle_to_pairs(handle)
+            ordered, _closed = order_edge_chain(pairs)
+            return len(ordered)
+        except (EdgeOrderError, ValueError, RuntimeError):
+            return None
+    if rtype == "curve":
+        name = handle if isinstance(handle, str) else None
+        if name and cmds.ls(name, dag=True, type="nurbsCurve"):
+            return MAX_CURVE_SAMPLES
+        return None
+    return None
+
+
+def seam_cap(seam_spec):
+    # type: (dict) -> int
+    """Min pair_count cap across a seam's two rails, or None if unresolved."""
+    ca = rail_cap(seam_spec.get("rail_a", {}))
+    cb = rail_cap(seam_spec.get("rail_b", {}))
+    if ca is None or cb is None:
+        return None
+    return min(ca, cb)
+
+
 def validate(rig_spec):
     # type: (dict) -> ValidationReport
     """Validate a rig_spec; never mutates the scene."""
