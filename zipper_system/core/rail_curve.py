@@ -86,3 +86,15 @@ class CurveRail(RailSource):
 
     def bind_handle(self):
         return ("curve", self._dag.fullPathName())
+
+    # -- build-layer driver wiring ------------------------------------------ #
+    def world_plug(self):
+        """Plug to connect into a deformer rail input (curve world geometry)."""
+        return "%s.worldSpace[0]" % (self._dag.fullPathName(),)
+
+    def driver_vertex_ids(self):
+        """Curve rails carry no ordered vertex ids (returns empty list)."""
+        return []
+
+    def shape_name(self):
+        return self._dag.fullPathName()

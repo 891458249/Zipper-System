@@ -236,3 +236,16 @@ class EdgeRail(RailSource):
 
     def bind_handle(self):
         return self.ordered_vertex_ids()
+
+    # -- build-layer driver wiring ------------------------------------------ #
+    def world_plug(self):
+        """Plug to connect into a deformer rail input (mesh world geometry)."""
+        return "%s.worldMesh[0]" % (self._dag.fullPathName(),)
+
+    def driver_vertex_ids(self):
+        """Edge rails feed the mesh + this ordered vertex-id list to the
+        deformer so it samples the right poly-line each frame."""
+        return self.ordered_vertex_ids()
+
+    def shape_name(self):
+        return self._dag.fullPathName()
