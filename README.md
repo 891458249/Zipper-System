@@ -15,7 +15,57 @@
 
 ## 状态
 
-🚧 开发中 — 架构蓝图已定稿，实现按 `ARCHITECTURE.md` §10 顺序推进。
+✅ P0–P2 已实现（compat / core+单测 / deformer / build / ui / action）。`core` 层 35 项 pytest 全绿；
+与 Maya 交互部分提供 Script Editor 手动验证脚本（见下）。
+
+## 快速开始
+
+### 1. 安装
+
+把仓库根目录加入 Maya 的 `PYTHONPATH`（或 `sys.path`），使 `import zipper_system` 可用。
+
+### 2. 打开 UI
+
+```python
+from zipper_system.action import ZipperAction
+ZipperAction.show_ui()
+```
+
+多缝列表 `+ Add Seam`；每行 Rail 选 `Edge`/`Curve` 后点 `<` 拾取当前选择；选 `Dynamic` / `Morph`
+机制；`Validate` 预检并高亮非法缝；`Build` 事务化构建（失败自动回滚，无孤立节点）。
+
+### 3. 脚本化构建（无 UI）
+
+```python
+from zipper_system.action import ZipperAction
+rig_spec = {
+    "name": "monsterMouth",
+    "final_mesh": "head_GEO",
+    "mechanic": "dynamic",            # 或 "morph"（需 morph_mesh）
+    "seams": [{
+        "rail_a": {"type": "curve", "handle": "lipUpper_CRV"},
+        "rail_b": {"type": "edge",  "handle": ["head_GEO.e[120]", "head_GEO.e[121]"]},
+        "pair_count": 30, "feather": 0.15, "direction": "both",
+        "invert": False, "controller": "jaw_zip_CTRL",
+    }],
+}
+ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
+```
+
+构建后拖动 `jaw_zip_CTRL.zip`（0→1）驱动闭合。`rig_spec` schema 见 `ARCHITECTURE.md` §C。
+
+### 4. 验证
+
+```bash
+python -m pytest          # core 纯单测（无需 Maya）
+```
+
+Maya 内手动冒烟测试：将 `zipper_system/examples/maya_smoke_test.py` 粘进 Script Editor 运行
+（`smoke_dynamic()` / `smoke_morph()` / `smoke_validation()`，脚本会打印预期结果）。
+
+> **注 — §3.3 wipe 方向**：蓝图 §3.3 的公式与「两端→中央」文字描述相互矛盾。按维护者决策，
+> 系统**两种方向都暴露**：deformer 增加 `invertWipe` 属性（UI 为「Invert wipe」勾选框），
+> 默认取「两端→中央」（修正公式 `clamp((z − d_k)/β)`），勾选后还原蓝图「中央→两端」曲线。
 
 ## 目录结构
 
