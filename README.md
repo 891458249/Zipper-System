@@ -27,7 +27,10 @@
 双击 `installer\ZipperSystemInstaller.exe`（Windows 单文件，目标机无需 Python）：
 勾选目标 Maya 版本（2022–2025，自动检测）→ `Install`。它会把模块内容复制到
 `Documents\maya\modules\ZipperSystem\` 并生成 `ZipperSystem.mod`（支持中/英、卸载、按版本增删）。
-重启 Maya 后在 Plug-in Manager 启用 `zipperSystem`（或 `cmds.loadPlugin("zipperSystem")`）。
+
+**重启 Maya 后，顶部菜单栏自动出现「Zipper System」菜单**，并自动加载 `zipperSystem` 插件——
+无需在 Plug-in Manager 手动勾选。菜单项：`Open Zipper System UI` / `Load Deformer Plug-in` /
+`Rebuild This Menu` / `About`。（菜单与自动加载由模块 `scripts/userSetup.py` 启动钩子完成。）
 
 > 纯 Python om2 deformer，**全版本同一份内容、无需按版本重编**。
 
