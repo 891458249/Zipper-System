@@ -187,10 +187,16 @@ def main_maya_window():
 # --------------------------------------------------------------------------- #
 def exec_dialog(dialog):
     # type: (object) -> int
-    """Modally execute a QDialog regardless of Qt5/Qt6 method naming."""
-    if hasattr(dialog, "exec"):
-        return dialog.exec()
-    return dialog.exec_()
+    """Modally execute a QDialog regardless of Qt5/Qt6 method naming.
+
+    NOTE: ``exec`` is a reserved *keyword* in Python 2 (Maya 2022 mayapy2), so
+    ``dialog.exec()`` would be a SyntaxError there. Resolve the bound method via
+    getattr to keep this module importable under both Python 2 and 3.
+    """
+    exec_method = getattr(dialog, "exec", None)
+    if exec_method is None:
+        exec_method = getattr(dialog, "exec_")
+    return exec_method()
 
 
 # --------------------------------------------------------------------------- #
