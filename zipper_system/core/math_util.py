@@ -5,6 +5,8 @@ sec.3.2 / sec.3.3).
 No Maya, no Qt. Points are plain 3-tuples/lists of floats so every function is
 unit-testable and CLI-callable.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

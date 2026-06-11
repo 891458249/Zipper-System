@@ -6,6 +6,8 @@ Pure Python: input/output are lists of 3-tuples. This removes the prototype's
 re-parameterised by cumulative chord length, then both are sampled at the same
 normalized parameters t_k = k / (N - 1).
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

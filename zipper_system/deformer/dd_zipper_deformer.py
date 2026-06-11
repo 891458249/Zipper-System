@@ -16,6 +16,8 @@ This module may be ``loadPlugin``-ed directly. It requires the ``zipper_system``
 package to be importable in Maya (on sys.path / PYTHONPATH) so it can reuse the
 pure ``core`` math -- the single source of the wipe formula.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

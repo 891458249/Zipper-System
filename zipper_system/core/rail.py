@@ -10,6 +10,8 @@ This module is pure: it defines the interface and a ``from_spec`` factory. The
 om2-backed concrete classes (CurveRail / EdgeRail) are imported lazily so the
 interface stays importable without Maya.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 
@@ -44,10 +46,32 @@ class RailData(object):
         return "RailData(n=%d)" % (len(self.points),)
 
 
+def _add_metaclass(metaclass):
+    """Class decorator applying *metaclass* on both Py2 and Py3 (six idiom).
+
+    Maya 2022.5.1 may run in Python 2.7 mode (mayapy2); ``class C(metaclass=...)``
+    and a bare ``__metaclass__`` attribute are each single-version-only, so we
+    rebuild the class through the metaclass in a way both interpreters accept.
+    """
+    def wrapper(cls):
+        orig_vars = cls.__dict__.copy()
+        slots = orig_vars.get("__slots__")
+        if slots is not None:
+            if isinstance(slots, str):
+                slots = [slots]
+            for slot in slots:
+                orig_vars.pop(slot, None)
+        orig_vars.pop("__dict__", None)
+        orig_vars.pop("__weakref__", None)
+        if hasattr(cls, "__qualname__"):
+            orig_vars["__qualname__"] = cls.__qualname__
+        return metaclass(cls.__name__, cls.__bases__, orig_vars)
+    return wrapper
+
+
+@_add_metaclass(abc.ABCMeta)
 class RailSource(object):
     """Abstract base for a sampleable rail (sec.2 contract)."""
-
-    __metaclass__ = abc.ABCMeta  # harmless on py3; real enforcement via ABCMeta
 
     @abc.abstractmethod
     def sample(self, n):
@@ -65,10 +89,6 @@ class RailSource(object):
     def bind_handle(self):
         """Source-level rebind info (edge: vertex ids; curve: param/PoCI)."""
         raise NotImplementedError
-
-
-# Make the ABC enforce abstractness on both Py2-style and Py3 (defensive).
-RailSource = abc.ABCMeta("RailSource", (object,), dict(RailSource.__dict__))
 
 
 def from_spec(spec):

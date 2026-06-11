@@ -9,6 +9,8 @@ Globals (pair count / feather / direction / controller) are applied to every
 seam when assembling the rig_spec; the schema keeps them per-seam, so per-row
 overrides are a future extension. All Qt access goes through compat.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 
@@ -99,14 +101,14 @@ class ZipperWidget(QtWidgets.QWidget):
         self.feather_spin.setRange(0.0, 1.0)
         self.feather_spin.setSingleStep(0.05)
         self.feather_spin.setValue(0.15)
-        params.addRow("Feather β:", self.feather_spin)
+        params.addRow("Feather (beta):", self.feather_spin)
 
         self.dir_combo = QtWidgets.QComboBox()
         self.dir_combo.addItems(["both", "ltr", "rtl"])
         params.addRow("Direction:", self.dir_combo)
 
         self.invert_chk = QtWidgets.QCheckBox(
-            "Invert wipe (center → ends)")
+            "Invert wipe (center -> ends)")
         params.addRow("", self.invert_chk)
 
         self.final_field = _PickField(

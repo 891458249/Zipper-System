@@ -6,6 +6,8 @@ Per seam we sample the two rails, bake the pair<->vertex correspondence, create
 the deformer with membership limited to the seam vertices, wire the driver rails
 (in world space) and drive ``zip`` from the seam controller.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

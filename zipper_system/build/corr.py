@@ -6,6 +6,8 @@ nearest b_k (corrB[k]). The deformer stores these as int arrays and uses them to
 know which membership vertices belong to which pair (and thus which wipe weight
 and midline to apply). om2 only.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

@@ -224,7 +224,7 @@ rig_spec = {
 
 | 维度 | 2022.5 / 2023 / 2024 | 2025.3 | 应对 |
 |---|---|---|---|
-| Python | 3.7 / 3.9 / 3.10 | 3.11 | 仅用 3.7 共有语法；不用 3.10+ `match`；注解用字符串 |
+| Python | 2.7 (mayapy2) **或** 3.7 / 3.9 / 3.10 | 3.11 | **运行期代码 Py2/3 双兼容**：每个模块 `from __future__ import absolute_import, division, print_function`；纯 ASCII 源码；ABC 用 `_add_metaclass` 装饰器（非 `metaclass=`/`__metaclass__`）；节点名判型用 `core._compat.string_types`（Py2 下 cmds 返回 `unicode`）；仅用 3.7 共有语法、不用 3.10+ `match`、注解用字符串。安装程序自身跑在打包 CPython 3.12，不受此约束 |
 | Qt 绑定 | PySide2 (Qt 5.15) | PySide6 (Qt 6.5) | 全程经 Qt.py 抽象；禁止直接 `from PySide2` |
 | wrapInstance | shiboken2 | shiboken6 | `qtcompat.wrap_instance` try/except 双导入 |
 | 枚举作用域 | `Qt.Checked` | `Qt.CheckState.Checked` | 垫片统一常量 |

@@ -6,12 +6,15 @@ The graph-ordering core (``order_edge_chain``) is PURE and fully unit-tested
 without Maya. The om2-backed ``EdgeRail`` wraps it: it reads edge->vertex
 connectivity and world positions through ``maya.api.OpenMaya`` only.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 
 from .rail import RailData, RailSource
 from .sampling import resample_with_index
 from .math_util import vsub, normalize
+from ._compat import string_types
 
 try:
     from maya.api import OpenMaya as om  # type: ignore
@@ -147,7 +150,7 @@ class EdgeRail(RailSource):
         """
         _require_maya()
         if isinstance(handle, (list, tuple)) and len(handle) == 2 \
-                and isinstance(handle[0], str) \
+                and isinstance(handle[0], string_types) \
                 and isinstance(handle[1], (list, tuple)):
             sel = om.MSelectionList()
             sel.add(handle[0])

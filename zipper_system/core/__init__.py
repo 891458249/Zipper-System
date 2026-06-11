@@ -5,6 +5,8 @@ om2 is used only inside the concrete rail classes for data access, and is
 imported lazily so this package stays importable (and unit-testable) without a
 running Maya.
 """
+from __future__ import absolute_import, division, print_function
+
 
 from . import math_util       # noqa: F401
 from . import sampling        # noqa: F401

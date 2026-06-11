@@ -7,6 +7,8 @@ domain logic: given the two rails it produces paired samples, midline points and
 wipe weights, all independent of whether the rails came from edges or curves and
 independent of which closure mechanic (dynamic / morph) the build layer chooses.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

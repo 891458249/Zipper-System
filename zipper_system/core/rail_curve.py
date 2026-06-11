@@ -5,11 +5,14 @@ om2-backed (MFnNurbsCurve). Sampling uses native arc-length parameterisation
 (findParamFromLength) so the resulting points are evenly spaced by length, which
 is exactly the t_k = k/(N-1) contract from sec.3.1.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 
 from .rail import RailData, RailSource
 from .math_util import normalize, vsub
+from ._compat import string_types
 
 try:
     from maya.api import OpenMaya as om  # type: ignore
@@ -38,7 +41,7 @@ class CurveRail(RailSource):
         or an om.MDagPath.
         """
         _require_maya()
-        if isinstance(handle, str):
+        if isinstance(handle, string_types):
             sel = om.MSelectionList()
             sel.add(handle)
             dag = sel.getDagPath(0)

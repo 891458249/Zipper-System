@@ -4,6 +4,8 @@
 cmds-only; lives in the build layer so the UI never imports cmds directly
 (keeps the 'ui -> build/core' dependency rule, sec.4).
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

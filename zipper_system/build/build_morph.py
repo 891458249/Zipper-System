@@ -19,6 +19,8 @@ effect is naturally local). For the exact corner->center wipe order, use the
 dynamic mechanic. The controller curve shape is exposed through the remapValue
 so artists can still ease the close.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

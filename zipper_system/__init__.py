@@ -12,5 +12,7 @@ Layering (see ARCHITECTURE.md sec.4):
 Compatible with Maya 2022.5.1 - 2025.3 (Python 3.7 -> 3.11).
 Only Python-3.7-common syntax is used throughout.
 """
+from __future__ import absolute_import, division, print_function
+
 
 __version__ = "0.1.0"

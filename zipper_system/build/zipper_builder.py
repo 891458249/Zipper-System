@@ -9,6 +9,8 @@
 
 cmds + maya.api only; no Qt.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

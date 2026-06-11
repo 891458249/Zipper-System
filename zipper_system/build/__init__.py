@@ -4,3 +4,5 @@
 Uses cmds + maya.api only; never imports Qt. Entry point is
 ``zipper_builder.build(rig_spec)``.
 """
+from __future__ import absolute_import, division, print_function
+

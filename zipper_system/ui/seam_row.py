@@ -5,6 +5,8 @@ Each rail has an [Edge/Curve] source dropdown, a '<' pick button (which routes
 to the matching build.selection helper) and a read-only display of the captured
 handle. Hits R1 (curve-or-edge per rail). All Qt access goes through compat.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 

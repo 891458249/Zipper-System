@@ -8,12 +8,15 @@ side effects (no nodes created). The same checks back the UI's standalone
 This layer may use cmds + om2; the edge-orderability check reuses the pure
 ``core`` algorithm.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 
 from maya import cmds
 
 from ..core.rail_edge import order_edge_chain, EdgeOrderError
+from ..core._compat import string_types
 
 MAX_CURVE_SAMPLES = 400  # soft cap for curve rails (edges cap at vertex count)
 VALID_MECHANICS = ("dynamic", "morph")
@@ -76,7 +79,7 @@ def _edge_handle_to_pairs(handle):
     """
     from maya.api import OpenMaya as om
     if isinstance(handle, (list, tuple)) and len(handle) == 2 \
-            and isinstance(handle[0], str) \
+            and isinstance(handle[0], string_types) \
             and isinstance(handle[1], (list, tuple)):
         mesh = handle[0]
         edge_ids = list(handle[1])
@@ -139,7 +142,7 @@ def _validate_rail(report, idx, label, rail_spec):
         return len(ordered)
 
     # curve
-    name = handle if isinstance(handle, str) else None
+    name = handle if isinstance(handle, string_types) else None
     if name is None or not _obj_exists(name):
         report.add_seam(idx, "%s: curve %r does not exist" % (label, handle))
         return None
@@ -169,7 +172,7 @@ def rail_cap(rail_spec):
         except (EdgeOrderError, ValueError, RuntimeError):
             return None
     if rtype == "curve":
-        name = handle if isinstance(handle, str) else None
+        name = handle if isinstance(handle, string_types) else None
         if name and cmds.ls(name, dag=True, type="nurbsCurve"):
             return MAX_CURVE_SAMPLES
         return None

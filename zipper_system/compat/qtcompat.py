@@ -20,6 +20,8 @@ Everything here must stay import-safe *outside* Maya (so unit tests and the
 ``core`` layer never explode merely by importing the package). Qt and om2 are
 therefore imported defensively.
 """
+from __future__ import absolute_import, division, print_function
+
 
 # NOTE: Python 3.7-common syntax only. No walrus, no match, no 3.8+ typing
 # features. Type hints are kept in comments / strings where given.

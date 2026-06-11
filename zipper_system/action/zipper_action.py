@@ -6,6 +6,8 @@ tool can be driven from a shelf button, a menu, a script, or an external
 ActionCore-style framework, without those callers needing to know the build /
 ui module layout. No Qt import at module load (the UI is imported lazily).
 """
+from __future__ import absolute_import, division, print_function
+
 
 # Python 3.7-common syntax only.
 
