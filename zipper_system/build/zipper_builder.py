@@ -22,7 +22,8 @@ from .validate import validate
 from . import build_dynamic
 from . import build_morph
 
-_PLUGIN_BASENAME = "dd_zipper_deformer"
+_PLUGIN_NODE_TYPE = "ddZipperDeformer"
+_PLUGIN_MODULE_NAME = "zipperSystem"
 
 
 class ZipperValidationError(RuntimeError):
@@ -39,13 +40,30 @@ class ZipperValidationError(RuntimeError):
 
 
 def ensure_plugin_loaded():
-    """Load the pure-Python deformer plugin if not already loaded."""
+    """Load the pure-Python deformer plugin if not already loaded.
+
+    The node type may be provided by the installed module plug-in
+    ('zipperSystem') or, in a dev checkout, by loading the package file
+    directly. We first check whether the node type is already registered so we
+    never double-register it.
+    """
     try:
-        loaded = cmds.pluginInfo(_PLUGIN_BASENAME, query=True, loaded=True)
+        if _PLUGIN_NODE_TYPE in (cmds.allNodeTypes() or []):
+            return
+    except Exception:
+        pass
+    # Prefer the installed module plug-in (on the Maya plug-in path).
+    try:
+        if cmds.pluginInfo(_PLUGIN_MODULE_NAME, query=True, loaded=True):
+            return
     except RuntimeError:
-        loaded = False
-    if loaded:
+        pass
+    try:
+        cmds.loadPlugin(_PLUGIN_MODULE_NAME, quiet=True)
         return
+    except RuntimeError:
+        pass
+    # Dev fallback: load the package deformer file by absolute path.
     from ..deformer import dd_zipper_deformer as ddmod
     cmds.loadPlugin(ddmod.__file__, quiet=True)
 

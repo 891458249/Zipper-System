@@ -19,7 +19,8 @@
 ### 锁定决策 (Locked Decisions)
 1. **闭合机制**：动态中线 + 静态 Morph **两者都做**，UI 单选切换。
 2. **多缝组织**：**N 条独立 Seam**，各自独立 wipe / 控制器属性，互不耦合。
-3. **实现底座**：允许 **纯 Python `maya.api` (om2) 自定义 deformer**，免 C++ 编译 → 跨版本零重编。
+3. **实现底座**：**纯 Python 自定义 deformer**，免 C++ 编译 → 跨版本零重编。
+   > **实施修正（2026-06）**：原定用 `maya.api` (om2) 的 `MPxDeformerNode`，但 Autodesk 直到 **Maya 2024** 才把 `MPxDeformerNode` 加入 *Python* API 2.0；Maya 2022/2023 下 `maya.api.OpenMayaAnim` **无该类**（实测报 `AttributeError: ... has no attribute 'MPxDeformerNode'`）。为覆盖 2022.5.1–2025.3 全区间，deformer 改用 **API 1.0 `maya.OpenMayaMPx.MPxDeformerNode`**（全版本均有、仍纯 Python 免编译）。`core` 纯数学层不变，仍单源。
 
 ---
 
@@ -131,7 +132,9 @@ zipper_system/
 
 ---
 
-## A. 动态档核心：`ddZipperDeformer`（om2 `MPxDeformerNode`，纯 Python）
+## A. 动态档核心：`ddZipperDeformer`（API 1.0 `OpenMayaMPx.MPxDeformerNode`，纯 Python）
+
+> 见 §0 锁定决策 3 实施修正：底座为 API 1.0（om2 `MPxDeformerNode` 仅 Maya 2024+ 提供），全版本免编译。属性契约不变，仅函数集换成 1.0 出参风格。
 
 **职责**：挂在 `final_mesh` 上，membership = 该缝的缝顶点；实时把 A/B 两侧缝顶点按 wipe 拉向中线。**每缝一个实例**（独立决策）。
 
@@ -155,7 +158,7 @@ p_out   = lerp(p_in, m_k, w_k)
 ```
 `a_k, b_k` 来自 `railA/railB` 弧长采样（§3.1），逐帧读取 → 中线动态跟随。每帧 `O(V_seam)`，单节点。
 
-**注册/兼容（R4）**：`maya.api.OpenMaya.MFnPlugin.registerNode`，`typeId` 取开发区段 `0x00000–0x7ffff`（或申请正式 id）；纯 Python 插件文件 `loadPlugin` 在 2022.5–2025.3 **API 2.0 稳定、无需重编**。`compat/` 提供统一 register/deregister 入口。
+**注册/兼容（R4）**：API 1.0 `OpenMayaMPx.MFnPlugin.registerNode(..., MPxNode.kDeformerNode)`（在 deformer 文件内自注册，无 `maya_useNewAPI` 即选 API 1.0），`typeId` 取开发区段 `0x00000–0x7ffff`（或申请正式 id）；纯 Python 插件文件 `loadPlugin` 在 2022.5–2025.3 **全版本稳定、无需重编**。模块经薄加载器 `plug-ins/zipperSystem.py` 暴露为插件名 `zipperSystem`。（`compat/` 仍提供 om2 register/deregister 入口，供未来 om2 节点使用。）
 
 ---
 
@@ -231,7 +234,8 @@ rig_spec = {
 | 信号 | `stateChanged` | `checkStateChanged`/`toggled` | 统一用 `toggled(bool)` |
 | QAction | `QtWidgets.QAction` | `QtGui.QAction` | 垫片别名 |
 | `exec_()` / `QRegExp` | 可用 | `exec()` / `QRegularExpression` | 垫片封装 |
-| 几何/采样 API | `maya.api.OpenMaya` | 同左（全版本稳定） | 采样/边排序/曲线参数一律 om2 |
+| 几何/采样 API | `maya.api.OpenMaya` (core/build) | 同左（全版本稳定） | 采样/边排序/曲线参数一律 om2 |
+| Deformer 底座 | **API 1.0** `OpenMayaMPx.MPxDeformerNode` | 同左 | om2 `MPxDeformerNode` 仅 2024+；用 1.0 覆盖 2022–2025（见 §0 修正 / §A） |
 
 `qtcompat.py` 契约：`wrap_instance(ptr, base)` / `CheckState.CHECKED` / `main_maya_window()` / `register_plugin()` / `deregister_plugin()`。
 
