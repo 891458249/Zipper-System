@@ -52,6 +52,21 @@ def _is_curve(name):
     return bool(cmds.ls(name, dag=True, type="nurbsCurve", noIntermediate=True))
 
 
+def _canonical(name):
+    """Return a unique identity for a curve handle: its shape's full DAG path.
+
+    Two handles that point at the same object (e.g. mid picked as rail_a, or a
+    short-name collision) yield the same value, which lets the seam distinctness
+    check below catch a degenerate seam. Returns None if it cannot be resolved.
+    """
+    shapes = cmds.ls(name, dag=True, type="nurbsCurve",
+                     noIntermediate=True, long=True)
+    if shapes:
+        return shapes[0]
+    full = cmds.ls(name, long=True)
+    return full[0] if full else None
+
+
 def _check_curve(report, idx, label, handle):
     name = handle if isinstance(handle, string_types) else None
     if not name:
@@ -80,6 +95,29 @@ def validate(rig_spec):
         _check_curve(report, idx, "rail_a", seam.get("rail_a"))
         _check_curve(report, idx, "mid", seam.get("mid"))
         _check_curve(report, idx, "rail_b", seam.get("rail_b"))
+
+        # rail_a / mid / rail_b must be three distinct curves; if mid resolves to
+        # the same object as a rail (mis-pick or short-name collision) the rig
+        # silently builds wrong (a rail conforms to itself), so reject it here.
+        # Only compare handles that already resolved to curves -- a missing /
+        # non-curve handle is reported above and not re-flagged.
+        resolved = {}
+        for label in ("rail_a", "mid", "rail_b"):
+            handle = seam.get(label)
+            if isinstance(handle, string_types) and _is_curve(handle):
+                resolved[label] = _canonical(handle)
+        labels = list(resolved)
+        clashed = False
+        for i in range(len(labels)):
+            for j in range(i + 1, len(labels)):
+                a, b = resolved[labels[i]], resolved[labels[j]]
+                if a is not None and a == b:
+                    clashed = True
+        if clashed:
+            report.add_seam(
+                idx,
+                "rail_a / mid / rail_b must be three distinct curves "
+                "(mid cannot be the same object as a rail)")
 
         direction = seam.get("direction", "both")
         if direction not in VALID_DIRECTIONS:
