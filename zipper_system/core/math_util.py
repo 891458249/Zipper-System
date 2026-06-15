@@ -137,11 +137,15 @@ def wipe_weight(k, n, z, beta, direction="both", invert=False):
     # type: (int, int, float, float, str, bool) -> float
     """Closure weight w_k(z) in [0, 1] for pair k.
 
-    w = clamp((z - t_k) / beta, 0, 1). beta <= 0 degenerates to a hard step at
-    t_k. This is the spatial/temporal factor that multiplies envelope * paint in
-    the deformer and is baked into the morph weight map.
+    The closing front advances as ``z * (1 + beta)`` so that:
+      * at z = 0 nothing is closed (every w_k = 0), and
+      * at z = 1 EVERY pair is fully closed (w_k = 1) -- a perfect conform/seal
+        at the controller's maximum, regardless of feather.
+    Pairs still close in t_k order with a soft band of width ``beta``.
+    beta <= 0 degenerates to a hard step at t_k (still fully closed by z = 1).
     """
     t = wipe_threshold(k, n, direction, invert)
     if beta <= 0.0:
         return 1.0 if z >= t else 0.0
-    return clamp((z - t) / beta, 0.0, 1.0)
+    front = z * (1.0 + beta)
+    return clamp((front - t) / beta, 0.0, 1.0)

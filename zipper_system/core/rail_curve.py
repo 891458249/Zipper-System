@@ -101,3 +101,10 @@ class CurveRail(RailSource):
 
     def shape_name(self):
         return self._dag.fullPathName()
+
+    def component_world_points(self):
+        """Return (world CV positions, CV ids, 'cv') -- the rail's own geometry
+        components, used when the rail is the *deformed* geometry (conform mode)."""
+        cvs = self._fn.cvPositions(om.MSpace.kWorld)
+        pts = [(p.x, p.y, p.z) for p in cvs]
+        return pts, list(range(len(pts))), "cv"

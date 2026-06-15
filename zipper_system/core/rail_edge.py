@@ -252,3 +252,10 @@ class EdgeRail(RailSource):
 
     def shape_name(self):
         return self._dag.fullPathName()
+
+    def component_world_points(self):
+        """Return (world vertex positions, vertex ids, 'vtx') for the rail's
+        ordered vertices -- used when the rail is the *deformed* geometry
+        (conform mode: deform these mesh verts onto the target)."""
+        pts = self._ordered_world_points()
+        return pts, list(self._ordered_vids), "vtx"

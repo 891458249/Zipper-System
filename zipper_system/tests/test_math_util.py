@@ -50,6 +50,15 @@ def test_wipe_invert_closes_center_first():
     assert w_mid > w_end
 
 
+def test_wipe_z1_fully_closed_all_pairs():
+    # Perfect conform/seal at the controller maximum: every pair reaches 1.0.
+    n = 9
+    for beta in (0.05, 0.15, 0.5, 1.0):
+        for direction in ("both", "ltr", "rtl"):
+            for k in range(n):
+                assert mu.wipe_weight(k, n, 1.0, beta, direction) == pytest.approx(1.0)
+
+
 def test_wipe_monotonic_in_z():
     n = 9
     beta = 0.2

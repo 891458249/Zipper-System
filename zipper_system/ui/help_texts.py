@@ -56,11 +56,13 @@ _EN = {
         u"The mesh that actually gets DEFORMED (e.g. the head). The rails are "
         u"only drivers that define the seam path; the seam vertices of THIS "
         u"mesh nearest each sampled pair are driven toward the midline.\n\n"
-        u"Optional when a rail is an Edge: it is auto-inferred from the edge's "
-        u"mesh, so you can leave this blank.\n\n"
-        u"The checkbox toggles the target type: CHECKED = Final Mesh (deform a "
-        u"polygon mesh); UNCHECKED = Final Curve (curve-only -- the rails drive "
-        u"a separately-picked NURBS curve, no mesh needed). Press '<' with the "
+        u"The target geometry. The checkbox toggles two rig types:\n"
+        u"  CHECKED = Final Mesh: the picked mesh deforms toward the rails' live "
+        u"midline (the rails drive the mesh).\n"
+        u"  UNCHECKED = Final Curve: rail A and rail B deform ONTO this curve -- "
+        u"the curve is the seam line they zip onto, reaching it exactly at "
+        u"zip = 1. Rails may be curves (their CVs) or edges (the mesh verts). "
+        u"For an edge rail the mesh is auto-inferred. Press '<' with the "
         u"mesh/curve selected.",
     "controller":
         u"The control object whose 'zip' attribute (0..1) drives this seam's "
@@ -126,9 +128,10 @@ _ZH = {
     "final_mesh":
         u"真正被「变形」的网格（如头部）。轨只是定义缝路径的驱动；会在「这个网格」上"
         u"找到离每个采样对最近的缝顶点，把它们拉向中线。\n\n"
-        u"当某条轨用「边」时可不填：会自动从该边所属的网格推断。\n\n"
-        u"勾选框切换目标类型：勾选 = 最终网格（变形多边形网格）；取消 = 最终曲线"
-        u"（纯曲线模式——轨去驱动另选的一条 NURBS 曲线，无需任何网格）。"
+        u"目标几何体。勾选框切换两种绑定类型：\n"
+        u"  勾选 = 最终网格：所选网格向两轨的实时中线变形（轨驱动网格）。\n"
+        u"  取消 = 最终曲线：轨 A 和轨 B 变形「贴合」到这条曲线——曲线就是它们要拉合到的缝线，"
+        u"zip = 1 时精确贴合。轨可以是曲线（变其 CV）或边（变网格顶点）；边轨会自动推断网格。"
         u"选中网格/曲线后点 '<'。",
     "controller":
         u"驱动本缝闭合的控制器，其 'zip' 属性 (0..1) 控制闭合量。若没有 'zip' 属性会自动添加并连接。"
