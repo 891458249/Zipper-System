@@ -107,6 +107,18 @@ def build_seam(seam_spec, seam_index, rig_root=None):
     rail_a = CurveRail.from_handle(seam_spec["rail_a"])
     rail_b = CurveRail.from_handle(seam_spec["rail_b"])
     mid = CurveRail.from_handle(seam_spec["mid"])
+
+    # Defense in depth: shape_name() is the resolved full DAG path, so if mid is
+    # the same curve as a rail (or the rails coincide) the conform would degrade
+    # to a rail conforming onto itself. Refuse before any node is created; the
+    # caller's transaction will undo() so no half-built rig is left behind.
+    a_shape, b_shape, mid_shape = (
+        rail_a.shape_name(), rail_b.shape_name(), mid.shape_name())
+    if mid_shape in (a_shape, b_shape) or a_shape == b_shape:
+        raise RuntimeError(
+            "seam %d: mid/rail_a/rail_b resolve to the same curve, refusing "
+            "to build" % seam_index)
+
     mid_plug = mid.world_plug()
     params = {
         "feather": float(seam_spec.get("feather", 0.15)),
