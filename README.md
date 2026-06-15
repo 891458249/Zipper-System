@@ -37,6 +37,17 @@
 
 > 纯 Python om2 deformer，**全版本同一份内容、无需按版本重编**。
 
+> ⚠️ **更新 / 切换设计后必须卸载旧插件（重要）**：Python 插件**不会热重载**。更新本系统、或切换
+> deformer 设计后，必须先 `unloadPlugin zipperSystem`、**重启 Maya**，并**删除场景中遗留的旧
+> `ddZipperDeformer` 节点**，再重新构建——否则进程里仍是旧字节码，旧节点行为与新源码不一致，会出现
+> 「改了代码却没生效」「旧绑定行为诡异」等假象。命令示例：
+>
+> ```python
+> from maya import cmds
+> cmds.delete(cmds.ls(type="ddZipperDeformer") or [])  # 先删旧 deformer 节点
+> cmds.unloadPlugin("zipperSystem")                     # 再卸载插件，然后重启 Maya
+> ```
+
 构建安装程序自身（开发者）：运行 `tools\build_installer.bat`（内部用 PyInstaller 打包，
 产物 `installer\ZipperSystemInstaller.exe`）。命令行静默安装：`ZipperSystemInstaller.exe --headless`。
 
