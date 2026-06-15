@@ -42,20 +42,19 @@ def _ensure_zip_attr(controller):
     return "%s.zip" % controller
 
 
-def _nearest_id(comp_pts, comp_ids, point):
-    px, py, pz = point
-    best_d = None
-    best_id = comp_ids[0] if comp_ids else 0
-    for i in range(len(comp_pts)):
-        p = comp_pts[i]
-        dx = p[0] - px
-        dy = p[1] - py
-        dz = p[2] - pz
-        d = dx * dx + dy * dy + dz * dz
-        if best_d is None or d < best_d:
-            best_d = d
-            best_id = comp_ids[i]
-    return best_id
+def _align_component_ids(comp_pts, comp_ids, target_pts):
+    """Return comp_ids, reversed if that better matches the target's orientation,
+    so ordered component i corresponds to target sample i (and conforms to it)."""
+    from ..core.math_util import vdist
+    if len(comp_pts) < 2 or len(target_pts) < 2:
+        return list(comp_ids)
+    c0, c1 = comp_pts[0], comp_pts[-1]
+    f0, f1 = target_pts[0], target_pts[-1]
+    same = vdist(f0, c0) + vdist(f1, c1)
+    flipped = vdist(f0, c1) + vdist(f1, c0)
+    if flipped < same:
+        return list(reversed(comp_ids))
+    return list(comp_ids)
 
 
 def _set_common_params(node, seam):
@@ -144,32 +143,35 @@ def _build_midline(target, seam, seam_index, rig_root):
 # curve mode: deform rail A & rail B onto the final curve (conform)
 # --------------------------------------------------------------------------- #
 def _build_conform(target_curve, seam, seam_index, rig_root):
-    n = seam.pair_count
     tgt_rail = CurveRail.from_handle(target_curve)
-    f_pts = list(tgt_rail.sample(n).points)        # target points, natural order
     tgt_plug = tgt_rail.world_plug()
 
     nodes = []
     for side, rail in (("A", seam.rail_a), ("B", seam.rail_b)):
         comp_pts, comp_ids, token = rail.component_world_points()
-        if not comp_ids:
+        m = len(comp_ids)
+        if m < 2:
             raise RuntimeError(
-                "seam %d rail %s: no components to deform" % (seam_index, side))
-        r_pts = list(rail.sample(n).points)
-        # Align the rail's sampling to the target's orientation, then each
-        # rail component is mapped to the target point at the same parameter.
-        aligned_r = align_rails(f_pts, r_pts)
-        corr = [_nearest_id(comp_pts, comp_ids, aligned_r[k]) for k in range(n)]
-        members = sorted(set(corr))
+                "seam %d rail %s: need at least 2 components" % (seam_index, side))
+
+        # EVERY component conforms: pairCount = component count, and the target
+        # is sampled to the same count, so component i lands on target sample i.
+        # (A smaller pair_count would leave the extra components behind.)
+        f_pts = list(tgt_rail.sample(m).points)
+        corr = _align_component_ids(comp_pts, comp_ids, f_pts)
 
         geo = rail.shape_name()
-        comps = ["%s.%s[%d]" % (geo, token, v) for v in members]
+        comps = ["%s.%s[%d]" % (geo, token, v) for v in comp_ids]
         cmds.select(comps, replace=True)
         node = cmds.deformer(
             type=DEFORMER_TYPE,
             name="zipper_seam%d_%s_DEF" % (seam_index, side))[0]
 
-        _set_common_params(node, seam)
+        cmds.setAttr("%s.pairCount" % node, m)
+        cmds.setAttr("%s.feather" % node, seam.feather)
+        cmds.setAttr("%s.direction" % node,
+                     {"both": 0, "ltr": 1, "rtl": 2}.get(seam.direction, 0))
+        cmds.setAttr("%s.invertWipe" % node, bool(seam.invert))
         cmds.setAttr("%s.flipB" % node, False)
         _set_int_array("%s.corrA" % node, corr)
         _set_int_array("%s.corrB" % node, [])
