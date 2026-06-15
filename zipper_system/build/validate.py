@@ -1,25 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Pre-build validation (ARCHITECTURE.md sec.8).
+"""Pre-build validation (curve-only).
 
-Build is refused unless every input is legal, so a failed validation has ZERO
-side effects (no nodes created). The same checks back the UI's standalone
-``Validate`` button, which highlights the offending seam rows.
-
-This layer may use cmds + om2; the edge-orderability check reuses the pure
-``core`` algorithm.
+A seam is three NURBS curves: rail_a, mid, rail_b. Build is refused unless every
+curve exists and is a NURBS curve, so a failed validation has ZERO side effects.
+The same checks back the UI's Validate button (it highlights bad seam rows).
 """
 from __future__ import absolute_import, division, print_function
 
-
-# Python 3.7-common syntax only.
-
 from maya import cmds
 
-from ..core.rail_edge import order_edge_chain, EdgeOrderError
 from ..core._compat import string_types
 
-MAX_CURVE_SAMPLES = 400  # soft cap for curve rails (edges cap at vertex count)
-VALID_MECHANICS = ("dynamic", "morph")
 VALID_DIRECTIONS = ("both", "ltr", "rtl")
 
 
@@ -29,13 +20,11 @@ class ValidationReport(object):
     ok          : bool, True iff no errors.
     errors      : list of global error strings.
     seam_errors : dict {seam_index: [error strings]} for UI row highlighting.
-    seam_caps   : dict {seam_index: pair_count upper bound} (min over rails).
     """
 
     def __init__(self):
         self.errors = []
         self.seam_errors = {}
-        self.seam_caps = {}
 
     @property
     def ok(self):
@@ -48,20 +37,13 @@ class ValidationReport(object):
         self.seam_errors.setdefault(idx, []).append(msg)
 
     def __repr__(self):
-        return "ValidationReport(ok=%s, errors=%d, seam_errors=%d)" % (
-            self.ok, len(self.errors),
-            sum(len(v) for v in self.seam_errors.values()))
+        return "ValidationReport(ok=%s, errors=%d)" % (
+            self.ok, len(self.errors) + sum(
+                len(v) for v in self.seam_errors.values()))
 
 
 def _obj_exists(name):
     return bool(name) and cmds.objExists(name)
-
-
-def _is_mesh(name):
-    if not _obj_exists(name):
-        return False
-    shapes = cmds.ls(name, dag=True, type="mesh", noIntermediate=True)
-    return bool(shapes)
 
 
 def _is_curve(name):
@@ -70,257 +52,34 @@ def _is_curve(name):
     return bool(cmds.ls(name, dag=True, type="nurbsCurve", noIntermediate=True))
 
 
-def _component_count(name, kind):
-    """Vertex count (mesh) or CV count (curve), or None."""
-    try:
-        if kind == "mesh":
-            return cmds.polyEvaluate(name, vertex=True)
-        if kind == "curve":
-            spans = cmds.getAttr(name + ".spans")
-            degree = cmds.getAttr(name + ".degree")
-            form = cmds.getAttr(name + ".form")
-            cvs = spans + degree
-            return spans if form == 2 else cvs   # periodic vs open/closed
-    except Exception:
-        return None
-    return None
-
-
-def _vertex_count(mesh):
-    try:
-        return cmds.polyEvaluate(mesh, vertex=True)
-    except Exception:
-        return None
-
-
-def _edge_handle_to_pairs(handle):
-    """Resolve an edge rail handle into (vertex_pair_list, mesh_name).
-
-    handle: list of 'mesh.e[i]' strings, or (mesh_name, [edge_ids]).
-    Returns (pairs, mesh) or raises ValueError / EdgeOrderError.
-    """
-    from maya.api import OpenMaya as om
-    if isinstance(handle, (list, tuple)) and len(handle) == 2 \
-            and isinstance(handle[0], string_types) \
-            and isinstance(handle[1], (list, tuple)):
-        mesh = handle[0]
-        edge_ids = list(handle[1])
-        sel = om.MSelectionList()
-        sel.add(mesh)
-        dag = sel.getDagPath(0)
-    else:
-        if not handle:
-            raise ValueError("empty edge selection")
-        sel = om.MSelectionList()
-        mesh = None
-        edge_ids = []
-        for s in handle:
-            sel.add(s)
-        for i in range(sel.length()):
-            d, comp = sel.getComponent(i)
-            if mesh is None:
-                mesh = d.fullPathName()
-                dag = d
-            elif d.fullPathName() != mesh:
-                raise ValueError(
-                    "edges span multiple objects (%s vs %s)"
-                    % (mesh, d.fullPathName()))
-            if comp.isNull():
-                raise ValueError("%r is not an edge component" % (s,))
-            edge_ids.extend(om.MFnSingleIndexedComponent(comp).getElements())
-    edge_iter = om.MItMeshEdge(dag)
-    pairs = []
-    for eid in edge_ids:
-        edge_iter.setIndex(eid)
-        pairs.append((edge_iter.vertexId(0), edge_iter.vertexId(1)))
-    return pairs, mesh
-
-
-def _validate_rail(report, idx, label, rail_spec):
-    """Validate one rail spec; return its pair_count cap or None on error."""
-    if not isinstance(rail_spec, dict):
-        report.add_seam(idx, "%s: rail spec must be a dict" % label)
-        return None
-    rtype = rail_spec.get("type")
-    handle = rail_spec.get("handle")
-    if rtype not in ("edge", "curve"):
-        report.add_seam(idx, "%s: type must be 'edge'|'curve', got %r"
-                        % (label, rtype))
-        return None
-    if not handle:
-        report.add_seam(idx, "%s: empty handle" % label)
-        return None
-
-    if rtype == "edge":
-        try:
-            pairs, mesh = _edge_handle_to_pairs(handle)
-            ordered, _closed = order_edge_chain(pairs)
-        except (EdgeOrderError, ValueError) as exc:
-            report.add_seam(idx, "%s: %s" % (label, exc))
-            return None
-        except RuntimeError as exc:
-            report.add_seam(idx, "%s: cannot resolve edges (%s)" % (label, exc))
-            return None
-        return len(ordered)
-
-    # curve
+def _check_curve(report, idx, label, handle):
     name = handle if isinstance(handle, string_types) else None
-    if name is None or not _obj_exists(name):
-        report.add_seam(idx, "%s: curve %r does not exist" % (label, handle))
-        return None
-    is_curve = bool(cmds.ls(name, dag=True, type="nurbsCurve"))
-    if not is_curve:
+    if not name:
+        report.add_seam(idx, "%s: nothing picked" % label)
+    elif not _is_curve(name):
         report.add_seam(idx, "%s: %r is not a NURBS curve" % (label, name))
-        return None
-    return MAX_CURVE_SAMPLES
-
-
-def infer_final_mesh(seams):
-    # type: (list) -> str
-    """Infer the mesh to deform from the first EDGE rail (edges live on a mesh).
-
-    Returns the mesh name, or None if no seam uses an edge rail (e.g. all rails
-    are curves, which belong to no mesh -- then final_mesh must be given).
-    """
-    for seam in seams or []:
-        if not isinstance(seam, dict):
-            continue
-        for key in ("rail_a", "rail_b"):
-            rail = seam.get(key) or {}
-            if rail.get("type") != "edge":
-                continue
-            handle = rail.get("handle")
-            if not handle:
-                continue
-            if (isinstance(handle, (list, tuple)) and len(handle) == 2
-                    and isinstance(handle[0], string_types)
-                    and isinstance(handle[1], (list, tuple))):
-                return handle[0]                       # (mesh, [edge_ids]) form
-            try:
-                return handle[0].split(".")[0]          # 'mesh.e[i]' strings
-            except (AttributeError, IndexError):
-                continue
-    return None
-
-
-def resolve_final_mesh(rig_spec):
-    # type: (dict) -> str
-    """Return the effective final mesh: explicit if given, else inferred from
-    an edge rail. None if neither is available.
-    """
-    explicit = rig_spec.get("final_mesh")
-    if explicit:
-        return explicit
-    return infer_final_mesh(rig_spec.get("seams"))
-
-
-def resolve_target(rig_spec):
-    # type: (dict) -> tuple
-    """Return (name, kind) of the geometry to deform.
-
-    Curve mode: a 'final_curve' is given -> ('curve'). Otherwise mesh mode: an
-    explicit 'final_mesh', else inferred from an edge rail -> ('mesh'). Returns
-    (None, None) if nothing resolves.
-    """
-    final_curve = rig_spec.get("final_curve")
-    if final_curve:
-        return final_curve, "curve"
-    mesh = resolve_final_mesh(rig_spec)
-    if mesh:
-        return mesh, "mesh"
-    return None, None
-
-
-def resolve_morph_target(rig_spec):
-    # type: (dict) -> str
-    """Return the morph source (curve mode -> 'morph_curve', else 'morph_mesh')."""
-    return rig_spec.get("morph_curve") or rig_spec.get("morph_mesh")
-
-
-def rail_cap(rail_spec):
-    # type: (dict) -> int
-    """Return the pair_count upper bound for one rail spec, or None if the rail
-    cannot be resolved. Used by the UI to clamp the Pair Count field (sec.6).
-    """
-    if not isinstance(rail_spec, dict):
-        return None
-    rtype = rail_spec.get("type")
-    handle = rail_spec.get("handle")
-    if not handle:
-        return None
-    if rtype == "edge":
-        try:
-            pairs, _mesh = _edge_handle_to_pairs(handle)
-            ordered, _closed = order_edge_chain(pairs)
-            return len(ordered)
-        except (EdgeOrderError, ValueError, RuntimeError):
-            return None
-    if rtype == "curve":
-        name = handle if isinstance(handle, string_types) else None
-        if name and cmds.ls(name, dag=True, type="nurbsCurve"):
-            return MAX_CURVE_SAMPLES
-        return None
-    return None
-
-
-def seam_cap(seam_spec):
-    # type: (dict) -> int
-    """Min pair_count cap across a seam's two rails, or None if unresolved."""
-    ca = rail_cap(seam_spec.get("rail_a", {}))
-    cb = rail_cap(seam_spec.get("rail_b", {}))
-    if ca is None or cb is None:
-        return None
-    return min(ca, cb)
 
 
 def validate(rig_spec):
     # type: (dict) -> ValidationReport
-    """Validate a rig_spec; never mutates the scene."""
+    """Validate a curve-only rig_spec; never mutates the scene."""
     report = ValidationReport()
     if not isinstance(rig_spec, dict):
         report.add("rig_spec must be a dict")
         return report
 
-    mechanic = rig_spec.get("mechanic")
-    if mechanic not in VALID_MECHANICS:
-        report.add("mechanic must be 'dynamic'|'morph', got %r" % (mechanic,))
-
-    target, kind = resolve_target(rig_spec)
-    if not target:
-        report.add("a deform target is required: pick a Final Mesh or a Final "
-                   "Curve, or use an edge rail so the mesh can be inferred")
-    elif kind == "mesh" and not _is_mesh(target):
-        report.add("final_mesh %r does not exist or is not a mesh" % (target,))
-    elif kind == "curve" and not _is_curve(target):
-        report.add("final_curve %r does not exist or is not a NURBS curve"
-                   % (target,))
-
-    morph_target = resolve_morph_target(rig_spec)
-    if mechanic == "morph":
-        if not _obj_exists(morph_target):
-            report.add("morph mechanic requires a valid morph target "
-                       "(morph_mesh or morph_curve, got %r)" % (morph_target,))
-        elif target:
-            if _component_count(morph_target, kind) != \
-                    _component_count(target, kind):
-                report.add("morph target and final target component counts "
-                           "differ (blendShape requires matching topology)")
-    elif mechanic == "dynamic":
-        # sec.8: dynamic mode forbids morph fields.
-        if rig_spec.get("morph_mesh") or rig_spec.get("morph_curve"):
-            report.add("dynamic mechanic must not set a morph target")
-
     seams = rig_spec.get("seams")
     if not seams:
-        report.add("rig_spec must contain at least one seam")
-        seams = []
+        report.add("add at least one seam")
+        return report
 
     for idx, seam in enumerate(seams):
         if not isinstance(seam, dict):
             report.add_seam(idx, "seam must be a dict")
             continue
-        cap_a = _validate_rail(report, idx, "rail_a", seam.get("rail_a", {}))
-        cap_b = _validate_rail(report, idx, "rail_b", seam.get("rail_b", {}))
+        _check_curve(report, idx, "rail_a", seam.get("rail_a"))
+        _check_curve(report, idx, "mid", seam.get("mid"))
+        _check_curve(report, idx, "rail_b", seam.get("rail_b"))
 
         direction = seam.get("direction", "both")
         if direction not in VALID_DIRECTIONS:
@@ -330,21 +89,5 @@ def validate(rig_spec):
         controller = seam.get("controller")
         if controller and not _obj_exists(controller):
             report.add_seam(idx, "controller %r does not exist" % (controller,))
-
-        pair_count = seam.get("pair_count", 30)
-        cap = None
-        if cap_a is not None and cap_b is not None:
-            cap = min(cap_a, cap_b)
-            report.seam_caps[idx] = cap
-        try:
-            pc = int(pair_count)
-        except (TypeError, ValueError):
-            report.add_seam(idx, "pair_count must be an int, got %r"
-                            % (pair_count,))
-            continue
-        if pc < 2:
-            report.add_seam(idx, "pair_count must be >= 2, got %d" % pc)
-        elif cap is not None and pc > cap:
-            report.add_seam(idx, "pair_count %d exceeds rail cap %d" % (pc, cap))
 
     return report

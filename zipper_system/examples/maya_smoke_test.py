@@ -1,138 +1,77 @@
 # -*- coding: utf-8 -*-
-"""Manual Maya smoke test for the Zipper System (run in the Script Editor).
+"""Manual Maya smoke test for the Zipper System (curve-only).
 
-NOT a pytest test -- it requires a running Maya. Paste the whole file into a
-Python tab of the Maya Script Editor (with the repo root on sys.path) and run.
+NOT a pytest test -- it requires a running Maya. Paste into a Python tab of the
+Maya Script Editor (with the repo root on sys.path) and run ``smoke()``.
 
-It builds a tiny rig and tells you what to look for. Two scenarios:
-
-    smoke_dynamic()  -> ddZipperDeformer driven by curve rails
-    smoke_morph()    -> blendShape closer driven by a controller
-
-Expected results are printed and described inline.
+It builds a tiny three-curve seam (Rail A, Mid Curve, Rail B) and tells you what
+to look for.
 """
+from __future__ import absolute_import, division, print_function
 
-import sys
-
-# --- make the package importable (edit to your checkout path if needed) ----- #
-# e.g. sys.path.append(r"X:/Plugins/Zipper System")
+import sys  # noqa: F401  (edit sys.path to your checkout if needed)
 
 from maya import cmds
 
 
-def _fresh_scene():
+def smoke():
+    from zipper_system.build import zipper_builder
     cmds.file(new=True, force=True)
 
-
-def _make_strip_and_rails():
-    """A 1-row poly strip plus two curves along its long edges."""
-    # head_GEO: 20 x 2 plane, 10 wide, 2 tall, centered at origin.
-    plane = cmds.polyPlane(
-        name="head_GEO", width=10, height=2,
-        subdivisionsX=20, subdivisionsY=1)[0]
-    # top edge (y = +1) and bottom edge (y = -1) rows of verts -> rails
-    top_pts = [(-5 + i * (10.0 / 20), 1.0, 0.0) for i in range(21)]
-    bot_pts = [(-5 + i * (10.0 / 20), -1.0, 0.0) for i in range(21)]
-    rail_a = cmds.curve(name="rail_top_CRV", degree=1, point=top_pts)
-    rail_b = cmds.curve(name="rail_bot_CRV", degree=1, point=bot_pts)
-    ctrl = cmds.spaceLocator(name="jaw_zip_CTRL")[0]
-    return plane, rail_a, rail_b, ctrl
-
-
-def smoke_dynamic():
-    from zipper_system.build import zipper_builder
-    _fresh_scene()
-    plane, rail_a, rail_b, ctrl = _make_strip_and_rails()
+    # Rail A above, Rail B below, Mid Curve between them.
+    rail_a = cmds.curve(name="railA_CRV", degree=3,
+                        point=[(i, 1.0, 0) for i in range(8)])
+    rail_b = cmds.curve(name="railB_CRV", degree=3,
+                        point=[(i, -1.0, 0) for i in range(8)])
+    mid = cmds.curve(name="mid_CRV", degree=3,
+                     point=[(i, 0.0, 0) for i in range(8)])
+    ctrl = cmds.spaceLocator(name="zip_CTRL")[0]
 
     rig_spec = {
-        "name": "smokeDyn",
-        "final_mesh": plane,
-        "mechanic": "dynamic",
+        "name": "smokeZip",
         "seams": [{
-            "rail_a": {"type": "curve", "handle": rail_a},
-            "rail_b": {"type": "curve", "handle": rail_b},
-            "pair_count": 21,
+            "rail_a": rail_a,
+            "mid": mid,
+            "rail_b": rail_b,
             "feather": 0.2,
             "direction": "both",
+            "invert": False,
             "controller": ctrl,
         }],
     }
     root = zipper_builder.build(rig_spec)
-    defs = cmds.ls(type="ddZipperDeformer")
-    print("[dynamic] rig root:", root)
-    print("[dynamic] deformer nodes:", defs)
-    print("[dynamic] EXPECTED: exactly one 'ddZipperDeformer', root group exists.")
-    print("[dynamic] NOW scrub %s.zip from 0 -> 1:" % ctrl)
-    print("          - at zip=0 the strip is flat (open).")
-    print("          - as zip rises the CORNERS (x=+-5) seal to y=0 FIRST,")
-    print("            the center seals LAST (ends -> center, the sec.3.3 fix).")
-    print("          - set %s.invertWipe 1 to flip to center -> ends." % defs[0])
-    cmds.setAttr("%s.zip" % ctrl, 0.6)
-    print("[dynamic] set zip=0.6; inspect the viewport.")
-    return root
-
-
-def smoke_morph():
-    from zipper_system.build import zipper_builder
-    _fresh_scene()
-    plane, rail_a, rail_b, ctrl = _make_strip_and_rails()
-
-    # morph target: a copy with the two rows collapsed to the midline (closed).
-    morph = cmds.duplicate(plane, name="head_closed_GEO")[0]
-    n = cmds.polyEvaluate(morph, vertex=True)
-    for v in range(n):
-        p = cmds.pointPosition("%s.vtx[%d]" % (morph, v), world=True)
-        cmds.move(p[0], 0.0, p[2], "%s.vtx[%d]" % (morph, v), absolute=True)
-
-    rig_spec = {
-        "name": "smokeMorph",
-        "final_mesh": plane,
-        "mechanic": "morph",
-        "morph_mesh": morph,
-        "seams": [{
-            "rail_a": {"type": "curve", "handle": rail_a},
-            "rail_b": {"type": "curve", "handle": rail_b},
-            "pair_count": 21,
-            "feather": 0.2,
-            "direction": "both",
-            "controller": ctrl,
-        }],
-    }
-    root = zipper_builder.build(rig_spec)
-    bs = cmds.ls(type="blendShape")
-    print("[morph] rig root:", root)
-    print("[morph] blendShape nodes:", bs)
-    print("[morph] EXPECTED: one blendShape + one remapValue; root group exists.")
-    print("[morph] scrub %s.zip 0 -> 1: strip cross-fades flat -> fully closed."
-          % ctrl)
+    print("[smoke] rig root:", root)
+    print("[smoke] deformers:", cmds.ls(type="ddZipperDeformer"))
+    print("[smoke] EXPECTED: two deformers (railA / railB), one rig group.")
+    print("[smoke] NOW scrub %s.zip 0 -> 1:" % ctrl)
+    print("        - zip=0: railA at y=+1, railB at y=-1 (open).")
+    print("        - rising: the ENDS seal onto the mid curve first, the")
+    print("          centre last (ends -> centre; set invertWipe for the")
+    print("          opposite).")
+    print("        - zip=1: BOTH rails lie exactly on the mid curve (y=0).")
     cmds.setAttr("%s.zip" % ctrl, 1.0)
-    print("[morph] set zip=1.0; strip should be fully sealed to y=0.")
+    print("[smoke] set zip=1; both rails should sit on the mid curve.")
     return root
 
 
 def smoke_validation():
-    """Invalid spec must raise BEFORE any node is created (sec.8)."""
+    """Invalid spec must raise BEFORE creating anything."""
     from zipper_system.build import zipper_builder
     from zipper_system.build.zipper_builder import ZipperValidationError
-    _fresh_scene()
+    cmds.file(new=True, force=True)
     before = set(cmds.ls())
-    bad = {
-        "name": "bad", "final_mesh": "does_not_exist", "mechanic": "dynamic",
-        "seams": [{"rail_a": {"type": "curve", "handle": "nope"},
-                   "rail_b": {"type": "curve", "handle": "nope"},
-                   "pair_count": 5, "controller": ""}],
-    }
+    bad = {"name": "bad", "seams": [
+        {"rail_a": "nope", "mid": "nope", "rail_b": "nope",
+         "direction": "both", "controller": ""}]}
     try:
         zipper_builder.build(bad)
-        print("[validate] ERROR: build should have raised!")
+        print("[validate] ERROR: should have raised!")
     except ZipperValidationError as exc:
-        after = set(cmds.ls())
-        leaked = after - before
+        leaked = set(cmds.ls()) - before
         print("[validate] raised as expected:\n", exc)
-        print("[validate] nodes leaked (must be empty set):", leaked)
+        print("[validate] nodes leaked (must be empty):", leaked)
 
 
 if __name__ == "__main__":
-    smoke_dynamic()
-    # smoke_morph()
+    smoke()
     # smoke_validation()

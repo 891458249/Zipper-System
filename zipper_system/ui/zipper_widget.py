@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Zipper System main panel (ARCHITECTURE.md sec.6).
+"""Zipper System main panel (curve-only).
 
-Multi-seam list (add/remove), per-row Edge/Curve toggle, dynamic Pair Count
-clamp, Mechanic radio (Dynamic / Morph) with morph-mesh gating, Validate / Build.
-Every control carries a '?' help bubble (English/Chinese) and the whole UI
-switches language at runtime. All Qt via compat. Python 2.7 / 3.x compatible.
+Multi-seam list; each seam = Rail A + Mid Curve + Rail B (three NURBS curves).
+Build conforms both rails onto the mid curve as the controller's zip goes 0 -> 1.
+Every control has a '?' help bubble and the UI switches EN/中文 at runtime.
+All Qt via compat. Python 2.7 / 3.x compatible.
 """
 from __future__ import absolute_import, division, print_function
 
@@ -16,13 +16,13 @@ QtWidgets = qt.QtWidgets
 QtCore = qt.QtCore
 
 _WINDOW_OBJECT = "zipperSystemMainWidget"
-_DIRS = ("both", "ltr", "rtl")          # direction combo index -> value
+_DIRS = ("both", "ltr", "rtl")
 _DIR_KEYS = ("dir_both", "dir_ltr", "dir_rtl")
-_LANGS = ("en", "zh")                   # language combo index -> code
+_LANGS = ("en", "zh")
 
 
 class _PickField(QtWidgets.QWidget):
-    """Read-only line edit + '<' capture button."""
+    """Read-only line edit + '<' capture button (single getter)."""
 
     def __init__(self, getter, placeholder_key, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -59,12 +59,11 @@ class ZipperWidget(QtWidgets.QWidget):
         self.setObjectName(_WINDOW_OBJECT)
         self.setWindowFlags(QtCore.Qt.Window)
         self._seam_rows = []
-        self._labels = {}     # key -> QLabel (for retranslate)
+        self._labels = {}
         self._build_ui()
         self._add_seam()
         self._retranslate()
 
-    # ------------------------------------------------------------------ #
     def _label(self, key):
         lbl = QtWidgets.QLabel(tr(key))
         self._labels[key] = lbl
@@ -75,11 +74,10 @@ class ZipperWidget(QtWidgets.QWidget):
 
         root = QtWidgets.QVBoxLayout(self)
 
-        # -- language switcher (top-right) -------------------------------- #
+        # language switcher
         lang_row = QtWidgets.QHBoxLayout()
         lang_row.addStretch(1)
-        self._lang_label = self._label("language")
-        lang_row.addWidget(self._lang_label)
+        lang_row.addWidget(self._label("language"))
         self.lang_combo = QtWidgets.QComboBox()
         self.lang_combo.addItems(["English", u"中文"])
         self.lang_combo.setCurrentIndex(
@@ -90,7 +88,7 @@ class ZipperWidget(QtWidgets.QWidget):
         lang_row.addWidget(HelpButton("language"))
         root.addLayout(lang_row)
 
-        # -- rig name ----------------------------------------------------- #
+        # rig name
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(self._label("rig_name"))
         self.name_edit = QtWidgets.QLineEdit("zipperRig")
@@ -98,7 +96,7 @@ class ZipperWidget(QtWidgets.QWidget):
         name_row.addWidget(HelpButton("rig_name"))
         root.addLayout(name_row)
 
-        # -- seams -------------------------------------------------------- #
+        # seams
         self._seams_box = QtWidgets.QGroupBox(tr("seams"))
         seam_lay = QtWidgets.QVBoxLayout(self._seams_box)
         btn_row = QtWidgets.QHBoxLayout()
@@ -117,15 +115,9 @@ class ZipperWidget(QtWidgets.QWidget):
         seam_lay.addWidget(self.seam_list)
         root.addWidget(self._seams_box, 1)
 
-        # -- params grid -------------------------------------------------- #
+        # zip params
         grid = QtWidgets.QGridLayout()
         r = 0
-
-        self.pair_spin = QtWidgets.QSpinBox()
-        self.pair_spin.setRange(2, 400)
-        self.pair_spin.setValue(30)
-        self._add_grid_row(grid, r, "pair_count", self.pair_spin); r += 1
-
         self.feather_spin = QtWidgets.QDoubleSpinBox()
         self.feather_spin.setRange(0.0, 1.0)
         self.feather_spin.setSingleStep(0.05)
@@ -140,47 +132,12 @@ class ZipperWidget(QtWidgets.QWidget):
         grid.addWidget(self.invert_chk, r, 1)
         grid.addWidget(HelpButton("invert_wipe"), r, 2); r += 1
 
-        # Final target: checkbox toggles Mesh (checked) vs Curve (unchecked).
-        self.target_chk = QtWidgets.QCheckBox(tr("final_mesh"))
-        self.target_chk.setChecked(True)
-        self.target_chk.toggled.connect(self._on_target_kind_changed)
-        self.final_field = _PickField(self._pick_target, "final_auto")
-        grid.addWidget(self.target_chk, r, 0)
-        grid.addWidget(self.final_field, r, 1)
-        grid.addWidget(HelpButton("final_mesh"), r, 2); r += 1
-
         self.ctrl_field = _PickField(
             selection.get_selected_node, "nothing_picked")
         self._add_grid_row(grid, r, "controller", self.ctrl_field); r += 1
         root.addLayout(grid)
 
-        # -- mechanic ----------------------------------------------------- #
-        self._mech_box = QtWidgets.QGroupBox(tr("mechanic"))
-        mech_lay = QtWidgets.QVBoxLayout(self._mech_box)
-        mrow = QtWidgets.QHBoxLayout()
-        self.dyn_radio = QtWidgets.QRadioButton(tr("dynamic"))
-        self.morph_radio = QtWidgets.QRadioButton(tr("morph"))
-        self.dyn_radio.setChecked(True)
-        self.mech_group = QtWidgets.QButtonGroup(self)
-        self.mech_group.addButton(self.dyn_radio)
-        self.mech_group.addButton(self.morph_radio)
-        mrow.addWidget(self.dyn_radio)
-        mrow.addWidget(self.morph_radio)
-        mrow.addStretch(1)
-        mrow.addWidget(HelpButton("mechanic"))
-        mech_lay.addLayout(mrow)
-
-        mm_row = QtWidgets.QHBoxLayout()
-        self._morph_label = QtWidgets.QLabel(tr("morph_mesh"))
-        mm_row.addWidget(self._morph_label)
-        self.morph_field = _PickField(
-            self._pick_morph_target, "morph_placeholder")
-        mm_row.addWidget(self.morph_field, 1)
-        mm_row.addWidget(HelpButton("morph_mesh"))
-        mech_lay.addLayout(mm_row)
-        root.addWidget(self._mech_box)
-
-        # -- actions ------------------------------------------------------ #
+        # actions
         act_row = QtWidgets.QHBoxLayout()
         act_row.addStretch(1)
         self.validate_btn = QtWidgets.QPushButton(tr("validate"))
@@ -191,57 +148,20 @@ class ZipperWidget(QtWidgets.QWidget):
         act_row.addWidget(HelpButton("build"))
         root.addLayout(act_row)
 
-        # -- wiring ------------------------------------------------------- #
         self.add_btn.clicked.connect(self._add_seam)
         self.rem_btn.clicked.connect(self._remove_seam)
         self.validate_btn.clicked.connect(self._on_validate)
         self.build_btn.clicked.connect(self._on_build)
-        self.morph_radio.toggled.connect(self._on_mechanic_changed)
-        self._on_mechanic_changed()
 
     def _add_grid_row(self, grid, r, label_key, widget):
         grid.addWidget(self._label(label_key), r, 0)
         grid.addWidget(widget, r, 1)
         grid.addWidget(HelpButton(label_key), r, 2)
 
-    # ------------------------------------------------------------------ #
-    # language
-    # ------------------------------------------------------------------ #
+    # -- language ------------------------------------------------------- #
     def _on_language_changed(self, idx):
         set_language(_LANGS[idx] if 0 <= idx < len(_LANGS) else "en")
         self._retranslate()
-
-    # ------------------------------------------------------------------ #
-    # deform target: mesh (checked) vs curve (unchecked)
-    # ------------------------------------------------------------------ #
-    def _target_is_mesh(self):
-        return self.target_chk.isChecked()
-
-    def _pick_target(self):
-        from ..build import selection
-        if self._target_is_mesh():
-            return selection.get_selected_mesh()
-        return selection.get_selected_curve()
-
-    def _pick_morph_target(self):
-        from ..build import selection
-        if self._target_is_mesh():
-            return selection.get_selected_mesh()
-        return selection.get_selected_curve()
-
-    def _on_target_kind_changed(self, _checked=None):
-        is_mesh = self._target_is_mesh()
-        self.final_field.field.setText("")
-        self.final_field._placeholder_key = (
-            "final_auto" if is_mesh else "nothing_picked")
-        self._refresh_target_labels()
-
-    def _refresh_target_labels(self):
-        is_mesh = self._target_is_mesh()
-        self.target_chk.setText(tr("final_mesh") if is_mesh else tr("final_curve"))
-        self._morph_label.setText(
-            tr("morph_mesh") if is_mesh else tr("morph_curve"))
-        self.final_field.retranslate()
 
     def _retranslate(self):
         self.setWindowTitle(tr("win_title"))
@@ -250,7 +170,6 @@ class ZipperWidget(QtWidgets.QWidget):
         self._seams_box.setTitle(tr("seams"))
         self.add_btn.setText(tr("add_seam"))
         self.rem_btn.setText(tr("remove_seam"))
-        # direction combo: keep index, refresh display text
         di = self.dir_combo.currentIndex()
         self.dir_combo.blockSignals(True)
         for i, k in enumerate(_DIR_KEYS):
@@ -258,31 +177,22 @@ class ZipperWidget(QtWidgets.QWidget):
         self.dir_combo.setCurrentIndex(di)
         self.dir_combo.blockSignals(False)
         self.invert_chk.setText(tr("invert_wipe"))
-        self._refresh_target_labels()
         self.ctrl_field.retranslate()
-        self.morph_field.retranslate()
-        self._mech_box.setTitle(tr("mechanic"))
-        self.dyn_radio.setText(tr("dynamic"))
-        self.morph_radio.setText(tr("morph"))
         self.validate_btn.setText(tr("validate"))
         self.build_btn.setText(tr("build"))
         for _item, row in self._seam_rows:
             row.retranslate()
 
-    # ------------------------------------------------------------------ #
-    # seam list management
-    # ------------------------------------------------------------------ #
+    # -- seam list ------------------------------------------------------ #
     def _add_seam(self):
         from .seam_row import SeamRow
         index = len(self._seam_rows)
         row = SeamRow(index)
-        row.changed.connect(self._reclamp_pair_count)
         item = QtWidgets.QListWidgetItem(self.seam_list)
         item.setSizeHint(row.sizeHint())
         self.seam_list.addItem(item)
         self.seam_list.setItemWidget(item, row)
         self._seam_rows.append((item, row))
-        self._reclamp_pair_count()
 
     def _remove_seam(self):
         if len(self._seam_rows) <= 1:
@@ -294,58 +204,22 @@ class ZipperWidget(QtWidgets.QWidget):
         self.seam_list.takeItem(self.seam_list.row(item))
         for new_idx, (_it, row) in enumerate(self._seam_rows):
             row.set_title(new_idx)
-        self._reclamp_pair_count()
 
-    def _on_mechanic_changed(self, *_):
-        is_morph = self.morph_radio.isChecked()
-        self.morph_field.setEnabled(is_morph)
-        self._morph_label.setEnabled(is_morph)
-
-    # ------------------------------------------------------------------ #
-    # dynamic pair-count clamp
-    # ------------------------------------------------------------------ #
-    def _reclamp_pair_count(self):
-        from ..build.validate import seam_cap
-        caps = []
-        for _item, row in self._seam_rows:
-            ra, rb = row.rails_spec()
-            cap = seam_cap({"rail_a": ra, "rail_b": rb})
-            if cap is not None:
-                caps.append(cap)
-        if caps:
-            top = max(2, min(caps))
-            self.pair_spin.setMaximum(top)
-            if self.pair_spin.value() > top:
-                self.pair_spin.setValue(top)
-
-    # ------------------------------------------------------------------ #
-    # spec assembly + actions
-    # ------------------------------------------------------------------ #
+    # -- spec + actions ------------------------------------------------- #
     def _collect_spec(self):
-        mechanic = "morph" if self.morph_radio.isChecked() else "dynamic"
         direction = _DIRS[self.dir_combo.currentIndex()]
         seams = []
         for _item, row in self._seam_rows:
-            ra, rb = row.rails_spec()
-            seams.append({
-                "rail_a": ra,
-                "rail_b": rb,
-                "pair_count": self.pair_spin.value(),
+            spec = row.seam_spec()
+            spec.update({
                 "feather": self.feather_spin.value(),
                 "direction": direction,
                 "invert": self.invert_chk.isChecked(),
                 "controller": self.ctrl_field.text(),
             })
-        is_mesh = self._target_is_mesh()
-        target_text = self.final_field.text()
-        morph_text = self.morph_field.text() if mechanic == "morph" else ""
+            seams.append(spec)
         return {
             "name": self.name_edit.text().strip() or "zipperRig",
-            "final_mesh": target_text if is_mesh else "",
-            "final_curve": "" if is_mesh else target_text,
-            "mechanic": mechanic,
-            "morph_mesh": morph_text if is_mesh else "",
-            "morph_curve": "" if is_mesh else morph_text,
             "seams": seams,
         }
 

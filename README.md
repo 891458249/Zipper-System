@@ -2,12 +2,15 @@
 
 通用「拉链式缝合 (Zipper)」绑定系统 for Autodesk Maya。
 
-从经典的嘴唇拉链 (lip zip / sticky lips) 泛化为**任意两两对应的 Rail 缝合**：
+从经典的嘴唇拉链 (lip zip / sticky lips) 泛化为**任意曲线对向中间曲线的缝合**：
 
-- **双数据源**：每条轨 (Rail) 可来自 NURBS 曲线 **或** Mesh 边循环（极端网格无法取边时改用曲线）。
-- **不写死上下唇**：以「缝 (Seam) = 一对 Rail」为模型，单缝即普通嘴，多缝即 4/5 瓣怪物拉链嘴。
-- **双闭合机制**：动态中线（实时跟随，sticky-lips 手感）与静态 Morph（高性能）UI 单选切换。
+- **纯曲线模型**：每条缝 = 轨 A + **中间曲线** + 轨 B（三条 NURBS 曲线）；两侧轨随控制器 `zip`
+  逐步贴合到中间曲线，`zip=1` 时精确落在其上。
+- **不写死上下**：多缝独立，单缝即普通嘴，多缝即 4/5 瓣怪物拉链嘴；各缝各自的控制器 / 方向 / 羽化。
+- **实时动态**：纯 Python om-API 1.0 deformer，每帧重算，缝线跟随中间曲线运动。
 - **全版本兼容**：Maya 2022.5.1 – 2025.3（**Python 2.7（mayapy2）/ 3.7→3.11 双兼容**，PySide2→PySide6）。
+
+> 当前为纯曲线版：网格 / Morph / 边等模型相关功能已移除，后续按需再加。
 
 ## 文档
 
@@ -60,19 +63,21 @@ ZipperAction.show_ui()
 from zipper_system.action import ZipperAction
 rig_spec = {
     "name": "monsterMouth",
-    "final_mesh": "head_GEO",
-    "mechanic": "dynamic",            # 或 "morph"（需 morph_mesh）
     "seams": [{
-        "rail_a": {"type": "curve", "handle": "lipUpper_CRV"},
-        "rail_b": {"type": "edge",  "handle": ["head_GEO.e[120]", "head_GEO.e[121]"]},
-        "pair_count": 30, "feather": 0.15, "direction": "both",
-        "invert": False, "controller": "jaw_zip_CTRL",
+        "rail_a": "railA_CRV",       # 一侧曲线
+        "mid":    "mid_CRV",         # 中间曲线（缝线，两轨贴合到它）
+        "rail_b": "railB_CRV",       # 另一侧曲线
+        "feather": 0.15, "direction": "both", "invert": False,
+        "controller": "jaw_zip_CTRL",
     }],
 }
 ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
 ```
 
-构建后拖动 `jaw_zip_CTRL.zip`（0→1）驱动闭合。`rig_spec` schema 见 `ARCHITECTURE.md` §C。
+每条缝 = **轨 A + 中间曲线 + 轨 B** 三条 NURBS 曲线。构建后拖动 `jaw_zip_CTRL.zip`（0→1）：
+轨 A、轨 B 逐步贴合到中间曲线，`zip=1` 时两轨精确落在中间曲线上（两端先合、中央后合）。
+
+> 当前为**纯曲线版**：已移除网格 / Morph / 边 等模型相关功能（后续按需再加）。
 
 ### 4. 验证
 

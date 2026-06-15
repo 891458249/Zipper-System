@@ -15,26 +15,27 @@ _EN = {
         u"Name of the zipper rig. A top group '<name>_zipperRig' is created to "
         u"hold all the nodes built for this rig.",
     "seams":
-        u"A Seam is one pair of rails (Rail A + Rail B) that get stitched along "
-        u"their shared midline. Add as many seams as you need -- one for a "
-        u"normal mouth, several for a 4/5-petal monster mouth. Seams are fully "
-        u"independent (own controller / wipe).",
+        u"A Seam is three NURBS curves: Rail A, Mid Curve, Rail B. As the "
+        u"controller's zip goes 0 -> 1, Rail A and Rail B both conform onto the "
+        u"Mid Curve (the seam line), meeting it exactly at zip = 1. Add as many "
+        u"seams as you need; each is independent.",
     "add_seam":
-        u"Add another independent seam (rail pair) to this rig. There is no "
-        u"hard-coded upper/lower assumption -- any two corresponding rails work.",
+        u"Add another independent seam (Rail A + Mid Curve + Rail B) to this rig.",
     "remove_seam":
         u"Remove the currently selected seam row from the list (at least one "
         u"seam is always kept).",
     "rail_a":
-        u"The first rail of this seam. Choose the source type (Edge or Curve) "
-        u"with the dropdown, then press '<' to capture the current selection:\n"
-        u"  Edge  - select a single connected edge loop/path on ONE mesh.\n"
-        u"  Curve - select one NURBS curve.\n"
-        u"Rails may mix types (e.g. Rail A = edge, Rail B = curve).",
+        u"The first side curve of this seam. Press '<' with a NURBS curve "
+        u"selected. Its CVs zip onto the Mid Curve; at zip = 1 it lies exactly "
+        u"on the Mid Curve.",
+    "mid_curve":
+        u"The middle/target curve of this seam -- the seam line that Rail A and "
+        u"Rail B zip onto. It sits between the two rails. Press '<' with a NURBS "
+        u"curve selected. The rails do not move it; they conform TO it.",
     "rail_b":
-        u"The second rail of this seam, paired against Rail A. Same Edge/Curve "
-        u"choice as Rail A. The two rails are sampled by arc length and paired "
-        u"corner-to-corner, so they need NOT have the same vertex count.",
+        u"The second side curve of this seam, opposite Rail A. Press '<' with a "
+        u"NURBS curve selected. Its CVs zip onto the same Mid Curve, so at "
+        u"zip = 1 both rails lie on the Mid Curve.",
     "pair_count":
         u"Sampling density N along each rail. Both rails are resampled to N "
         u"evenly arc-length-spaced points and paired (a_k, b_k). Higher = finer "
@@ -81,9 +82,10 @@ _EN = {
         u"the final mesh (same topology / vertex count). The blendShape fades "
         u"the final mesh toward this shape as the controller drives the close.",
     "validate":
-        u"Run all pre-build checks WITHOUT creating anything: node existence, "
-        u"edges form a single chain on one object, pair-count range, mechanic "
-        u"field rules. Offending seam rows are highlighted. Zero side effects.",
+        u"Run all pre-build checks WITHOUT creating anything: every seam's Rail "
+        u"A / Mid Curve / Rail B exist and are NURBS curves, the controller "
+        u"exists, the direction is valid. Offending seam rows are highlighted. "
+        u"Zero side effects.",
     "build":
         u"Validate, then build the rig inside a single undo chunk with a "
         u"progress bar. Any error rolls the whole thing back -- no orphan "
@@ -97,20 +99,21 @@ _ZH = {
     "rig_name":
         u"拉链绑定的名称。会创建一个顶层组 '<名称>_zipperRig' 来容纳本次构建的所有节点。",
     "seams":
-        u"一条「缝 (Seam)」= 一对轨（轨 A + 轨 B），沿它们的中线缝合。需要几条就加几条："
-        u"普通嘴 1 条，4/5 瓣怪物嘴用多条。各缝完全独立（各自的控制器 / wipe），代码不写死上下唇。",
+        u"一条「缝 (Seam)」= 三条 NURBS 曲线：轨 A、中间曲线、轨 B。控制器 zip 从 0→1 时，"
+        u"轨 A 和轨 B 都贴合到中间曲线（缝线），zip=1 时精确落在中间曲线上。需要几条就加几条，各缝独立。",
     "add_seam":
-        u"为本绑定新增一条独立的缝（轨对）。不预设上/下唇——任意两条相对应的轨都可以。",
+        u"为本绑定新增一条独立的缝（轨 A + 中间曲线 + 轨 B）。",
     "remove_seam":
         u"从列表中删除当前选中的缝行（至少保留一条缝）。",
     "rail_a":
-        u"本缝的第一条轨。用下拉框选择来源类型（边 / 曲线），再点 '<' 拾取当前选择：\n"
-        u"  边   —— 在同一个网格上选一条相连的边环 / 边链。\n"
-        u"  曲线 —— 选一条 NURBS 曲线。\n"
-        u"两条轨可混用类型（如 轨 A 用边、轨 B 用曲线）。",
+        u"本缝的第一条边曲线。选中一条 NURBS 曲线后点 '<'。它的 CV 会拉合到中间曲线；"
+        u"zip=1 时精确落在中间曲线上。",
+    "mid_curve":
+        u"本缝的中间 / 目标曲线——轨 A 和轨 B 要拉合到的缝线，位于两轨之间。选中一条 NURBS 曲线后点 '<'。"
+        u"轨不会移动它，而是去贴合它。",
     "rail_b":
-        u"本缝的第二条轨，与轨 A 配对。Edge/Curve 选择同轨 A。两条轨按弧长重采样并端到端配对，"
-        u"因此两轨顶点数可以不相等。",
+        u"本缝的第二条边曲线，与轨 A 相对。选中一条 NURBS 曲线后点 '<'。它的 CV 会拉合到同一条中间曲线，"
+        u"所以 zip=1 时两条轨都落在中间曲线上。",
     "pair_count":
         u"沿每条轨的采样密度 N。两条轨各重采样为 N 个按弧长均匀分布的点并配对 (a_k, b_k)。"
         u"越大缝合越细但开销越大。会自动钳制到轨的顶点上限。",
@@ -146,8 +149,8 @@ _ZH = {
         u"仅用于 Morph 机制：预雕好的「已闭合」最终网格副本（拓扑 / 顶点数相同）。"
         u"控制器驱动闭合时，blendShape 把最终网格淡化到此形状。",
     "validate":
-        u"在「不创建任何节点」的前提下跑全部预校验：节点存在性、边是否在同一物体上排成单链、"
-        u"采样对数范围、机制字段规则。非法的缝行会高亮。零副作用。",
+        u"在「不创建任何节点」的前提下跑全部预校验：每条缝的轨 A / 中间曲线 / 轨 B 是否存在且为 "
+        u"NURBS 曲线、控制器是否存在、方向是否合法。非法的缝行会高亮。零副作用。",
     "build":
         u"先校验，再在单个 undo 块内带进度条构建绑定。任何错误都会整体回滚——不残留孤立节点。",
     "language":
