@@ -28,11 +28,13 @@ def get_selected_edges():
 
 
 def get_selected_curve():
-    """Return the selected NURBS curve transform name.
+    """Return the selected NURBS curve transform's full DAG path.
 
+    Uses long=True so same-named curves resolve to a unique path downstream
+    (om.MSelectionList.add on a short name is ambiguous when names collide).
     Raises ValueError if the selection is not a single NURBS curve.
     """
-    sel = cmds.ls(selection=True, long=False) or []
+    sel = cmds.ls(selection=True, long=True) or []
     if not sel:
         raise ValueError("select a NURBS curve first")
     curve = None
@@ -47,8 +49,8 @@ def get_selected_curve():
 
 
 def get_selected_mesh():
-    """Return the first selected mesh transform/shape name."""
-    sel = cmds.ls(selection=True, long=False) or []
+    """Return the first selected mesh transform/shape full DAG path."""
+    sel = cmds.ls(selection=True, long=True) or []
     for node in sel:
         if cmds.ls(node, dag=True, type="mesh", noIntermediate=True):
             return node
@@ -56,8 +58,8 @@ def get_selected_mesh():
 
 
 def get_selected_node():
-    """Return the first selected node (any type)."""
-    sel = cmds.ls(selection=True, long=False) or []
+    """Return the first selected node's full DAG path (any type)."""
+    sel = cmds.ls(selection=True, long=True) or []
     if not sel:
         raise ValueError("nothing selected")
     return sel[0]
