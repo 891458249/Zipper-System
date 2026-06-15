@@ -20,7 +20,9 @@ DEFORMER_TYPE = "ddZipperDeformer"
 
 
 def _set_int_array(node_attr, values):
-    cmds.setAttr(node_attr, len(values), *values, type="Int32Array")
+    # cmds wants the list passed as a single argument for Int32Array; the
+    # MEL-style "count, *values" form raises "Too much data was provided".
+    cmds.setAttr(node_attr, list(values), type="Int32Array")
 
 
 def _ensure_zip_attr(controller):
