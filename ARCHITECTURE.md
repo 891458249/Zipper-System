@@ -173,7 +173,7 @@ p_out   = lerp(p_in, m_k, w_k)
 ```python
 rig_spec = {
     "name": str,
-    "final_mesh": str,
+    "final_mesh": str,              # 被变形的网格；当某轨为 edge 时可留空，自动从边所属网格推断（仅全 curve 轨时必填）
     "mechanic": "dynamic" | "morph",
     "morph_mesh": str,              # 仅 morph 档校验
     "seams": [                      # ← N 条独立缝 (R3)

@@ -18,7 +18,7 @@ from maya import cmds
 
 from ..core.rail import from_spec as rail_from_spec
 from ..core.seam import Seam
-from .validate import validate
+from .validate import validate, resolve_final_mesh
 from . import build_dynamic
 from . import build_morph
 
@@ -96,7 +96,7 @@ def build(rig_spec, validate_first=True):
             raise ZipperValidationError(report)
 
     mechanic = rig_spec["mechanic"]
-    final_mesh = rig_spec["final_mesh"]
+    final_mesh = resolve_final_mesh(rig_spec)  # explicit, else inferred from edges
     morph_mesh = rig_spec.get("morph_mesh")
     seams_spec = rig_spec["seams"]
 

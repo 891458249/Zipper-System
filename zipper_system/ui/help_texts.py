@@ -53,9 +53,13 @@ _EN = {
         u"centre->ends. (Resolves the blueprint sec.3.3 ambiguity by exposing "
         u"both directions; default off = ends->centre.)",
     "final_mesh":
-        u"The mesh that actually gets deformed (e.g. the head). The seam "
-        u"vertices nearest each sampled pair are found and driven toward the "
-        u"midline. Press '<' with the mesh selected.",
+        u"The mesh that actually gets DEFORMED (e.g. the head). The rails are "
+        u"only drivers that define the seam path; the seam vertices of THIS "
+        u"mesh nearest each sampled pair are driven toward the midline.\n\n"
+        u"Optional when a rail is an Edge: it is auto-inferred from the edge's "
+        u"mesh, so you can leave this blank. Required only when both rails are "
+        u"Curves (a curve belongs to no mesh). Press '<' with the mesh "
+        u"selected.",
     "controller":
         u"The control object whose 'zip' attribute (0..1) drives this seam's "
         u"closure. If it has no 'zip' attribute one is added automatically and "
@@ -118,8 +122,10 @@ _ZH = {
         u"反转闭合顺序。在「双向」下，把「两端→中央」翻成「中央→两端」。"
         u"（蓝图 §3.3 公式与文字相互矛盾，这里两种方向都暴露；默认关闭 = 两端→中央。）",
     "final_mesh":
-        u"真正被变形的网格（如头部）。会为每个采样对找到最近的缝顶点并把它们拉向中线。"
-        u"选中网格后点 '<'。",
+        u"真正被「变形」的网格（如头部）。轨只是定义缝路径的驱动；会在「这个网格」上"
+        u"找到离每个采样对最近的缝顶点，把它们拉向中线。\n\n"
+        u"当某条轨用「边」时可不填：会自动从该边所属的网格推断。仅当两条轨都用「曲线」"
+        u"时才必须指定（曲线不属于任何网格）。选中网格后点 '<'。",
     "controller":
         u"驱动本缝闭合的控制器，其 'zip' 属性 (0..1) 控制闭合量。若没有 'zip' 属性会自动添加并连接。"
         u"选中控制器后点 '<'。",

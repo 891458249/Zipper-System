@@ -141,7 +141,7 @@ class ZipperWidget(QtWidgets.QWidget):
         grid.addWidget(HelpButton("invert_wipe"), r, 2); r += 1
 
         self.final_field = _PickField(
-            selection.get_selected_mesh, "nothing_picked")
+            selection.get_selected_mesh, "final_auto")
         self._add_grid_row(grid, r, "final_mesh", self.final_field); r += 1
 
         self.ctrl_field = _PickField(

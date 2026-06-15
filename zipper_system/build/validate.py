@@ -153,6 +153,45 @@ def _validate_rail(report, idx, label, rail_spec):
     return MAX_CURVE_SAMPLES
 
 
+def infer_final_mesh(seams):
+    # type: (list) -> str
+    """Infer the mesh to deform from the first EDGE rail (edges live on a mesh).
+
+    Returns the mesh name, or None if no seam uses an edge rail (e.g. all rails
+    are curves, which belong to no mesh -- then final_mesh must be given).
+    """
+    for seam in seams or []:
+        if not isinstance(seam, dict):
+            continue
+        for key in ("rail_a", "rail_b"):
+            rail = seam.get(key) or {}
+            if rail.get("type") != "edge":
+                continue
+            handle = rail.get("handle")
+            if not handle:
+                continue
+            if (isinstance(handle, (list, tuple)) and len(handle) == 2
+                    and isinstance(handle[0], string_types)
+                    and isinstance(handle[1], (list, tuple))):
+                return handle[0]                       # (mesh, [edge_ids]) form
+            try:
+                return handle[0].split(".")[0]          # 'mesh.e[i]' strings
+            except (AttributeError, IndexError):
+                continue
+    return None
+
+
+def resolve_final_mesh(rig_spec):
+    # type: (dict) -> str
+    """Return the effective final mesh: explicit if given, else inferred from
+    an edge rail. None if neither is available.
+    """
+    explicit = rig_spec.get("final_mesh")
+    if explicit:
+        return explicit
+    return infer_final_mesh(rig_spec.get("seams"))
+
+
 def rail_cap(rail_spec):
     # type: (dict) -> int
     """Return the pair_count upper bound for one rail spec, or None if the rail
@@ -201,8 +240,11 @@ def validate(rig_spec):
     if mechanic not in VALID_MECHANICS:
         report.add("mechanic must be 'dynamic'|'morph', got %r" % (mechanic,))
 
-    final_mesh = rig_spec.get("final_mesh")
-    if not _is_mesh(final_mesh):
+    final_mesh = resolve_final_mesh(rig_spec)
+    if not final_mesh:
+        report.add("final_mesh is required: pick the mesh to deform, or use an "
+                   "edge rail so it can be inferred automatically")
+    elif not _is_mesh(final_mesh):
         report.add("final_mesh %r does not exist or is not a mesh"
                    % (final_mesh,))
 
