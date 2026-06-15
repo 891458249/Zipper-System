@@ -173,9 +173,11 @@ p_out   = lerp(p_in, m_k, w_k)
 ```python
 rig_spec = {
     "name": str,
-    "final_mesh": str,              # 被变形的网格；当某轨为 edge 时可留空，自动从边所属网格推断（仅全 curve 轨时必填）
+    "final_mesh": str,              # 网格模式：被变形的网格；某轨为 edge 时可留空，自动从边所属网格推断
+    "final_curve": str,             # 曲线模式：被变形的目标 NURBS 曲线（轨驱动它）；给了它即走曲线模式
     "mechanic": "dynamic" | "morph",
-    "morph_mesh": str,              # 仅 morph 档校验
+    "morph_mesh": str,              # 仅 morph 档：网格模式的 morph 源
+    "morph_curve": str,             # 仅 morph 档：曲线模式的 morph 源曲线
     "seams": [                      # ← N 条独立缝 (R3)
         {
             "rail_a": {"type": "edge" | "curve", "handle": <edges | curve>},

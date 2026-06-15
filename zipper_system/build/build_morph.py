@@ -34,10 +34,15 @@ def _ensure_zip_attr(controller):
     return "%s.zip" % controller
 
 
-def build_seam_morph(final_mesh, morph_mesh, seam, seam_index, rig_root=None):
-    """Build the blendShape closer for one seam. Returns the blendShape node."""
+def build_seam_morph(final_target, morph_target, seam, seam_index,
+                     rig_root=None):
+    """Build the blendShape closer for one seam. Returns the blendShape node.
+
+    final_target / morph_target may be meshes or NURBS curves (blendShape works
+    on both); curve mode just feeds curves here.
+    """
     bs = cmds.blendShape(
-        morph_mesh, final_mesh, frontOfChain=True,
+        morph_target, final_target, frontOfChain=True,
         name="zipper_seam%d_BS" % seam_index)[0]
     target_attr = "%s.weight[0]" % bs
 

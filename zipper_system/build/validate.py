@@ -64,6 +64,28 @@ def _is_mesh(name):
     return bool(shapes)
 
 
+def _is_curve(name):
+    if not _obj_exists(name):
+        return False
+    return bool(cmds.ls(name, dag=True, type="nurbsCurve", noIntermediate=True))
+
+
+def _component_count(name, kind):
+    """Vertex count (mesh) or CV count (curve), or None."""
+    try:
+        if kind == "mesh":
+            return cmds.polyEvaluate(name, vertex=True)
+        if kind == "curve":
+            spans = cmds.getAttr(name + ".spans")
+            degree = cmds.getAttr(name + ".degree")
+            form = cmds.getAttr(name + ".form")
+            cvs = spans + degree
+            return spans if form == 2 else cvs   # periodic vs open/closed
+    except Exception:
+        return None
+    return None
+
+
 def _vertex_count(mesh):
     try:
         return cmds.polyEvaluate(mesh, vertex=True)
@@ -192,6 +214,29 @@ def resolve_final_mesh(rig_spec):
     return infer_final_mesh(rig_spec.get("seams"))
 
 
+def resolve_target(rig_spec):
+    # type: (dict) -> tuple
+    """Return (name, kind) of the geometry to deform.
+
+    Curve mode: a 'final_curve' is given -> ('curve'). Otherwise mesh mode: an
+    explicit 'final_mesh', else inferred from an edge rail -> ('mesh'). Returns
+    (None, None) if nothing resolves.
+    """
+    final_curve = rig_spec.get("final_curve")
+    if final_curve:
+        return final_curve, "curve"
+    mesh = resolve_final_mesh(rig_spec)
+    if mesh:
+        return mesh, "mesh"
+    return None, None
+
+
+def resolve_morph_target(rig_spec):
+    # type: (dict) -> str
+    """Return the morph source (curve mode -> 'morph_curve', else 'morph_mesh')."""
+    return rig_spec.get("morph_curve") or rig_spec.get("morph_mesh")
+
+
 def rail_cap(rail_spec):
     # type: (dict) -> int
     """Return the pair_count upper bound for one rail spec, or None if the rail
@@ -240,28 +285,30 @@ def validate(rig_spec):
     if mechanic not in VALID_MECHANICS:
         report.add("mechanic must be 'dynamic'|'morph', got %r" % (mechanic,))
 
-    final_mesh = resolve_final_mesh(rig_spec)
-    if not final_mesh:
-        report.add("final_mesh is required: pick the mesh to deform, or use an "
-                   "edge rail so it can be inferred automatically")
-    elif not _is_mesh(final_mesh):
-        report.add("final_mesh %r does not exist or is not a mesh"
-                   % (final_mesh,))
+    target, kind = resolve_target(rig_spec)
+    if not target:
+        report.add("a deform target is required: pick a Final Mesh or a Final "
+                   "Curve, or use an edge rail so the mesh can be inferred")
+    elif kind == "mesh" and not _is_mesh(target):
+        report.add("final_mesh %r does not exist or is not a mesh" % (target,))
+    elif kind == "curve" and not _is_curve(target):
+        report.add("final_curve %r does not exist or is not a NURBS curve"
+                   % (target,))
 
-    morph_mesh = rig_spec.get("morph_mesh")
+    morph_target = resolve_morph_target(rig_spec)
     if mechanic == "morph":
-        if not _is_mesh(morph_mesh):
-            report.add("morph mechanic requires a valid morph_mesh (got %r)"
-                       % (morph_mesh,))
-        elif _is_mesh(final_mesh):
-            if _vertex_count(morph_mesh) != _vertex_count(final_mesh):
-                report.add("morph_mesh and final_mesh vertex counts differ "
-                           "(blendShape requires matching topology)")
+        if not _obj_exists(morph_target):
+            report.add("morph mechanic requires a valid morph target "
+                       "(morph_mesh or morph_curve, got %r)" % (morph_target,))
+        elif target:
+            if _component_count(morph_target, kind) != \
+                    _component_count(target, kind):
+                report.add("morph target and final target component counts "
+                           "differ (blendShape requires matching topology)")
     elif mechanic == "dynamic":
         # sec.8: dynamic mode forbids morph fields.
-        if morph_mesh:
-            report.add("dynamic mechanic must not set morph_mesh (got %r)"
-                       % (morph_mesh,))
+        if rig_spec.get("morph_mesh") or rig_spec.get("morph_curve"):
+            report.add("dynamic mechanic must not set a morph target")
 
     seams = rig_spec.get("seams")
     if not seams:

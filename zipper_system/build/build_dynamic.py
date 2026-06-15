@@ -31,11 +31,13 @@ def _ensure_zip_attr(controller):
     return "%s.zip" % controller
 
 
-def build_seam_dynamic(final_mesh, seam, seam_index, rig_root=None):
+def build_seam_dynamic(target, seam, seam_index, rig_root=None,
+                       target_kind="mesh"):
     """Build the dynamic deformer for one seam. Returns the deformer node name.
 
-    seam: core.seam.Seam (its rail_a/rail_b expose world_plug /
-          driver_vertex_ids / shape_name).
+    target: the geometry to deform -- a mesh (target_kind='mesh') OR a NURBS
+            curve (target_kind='curve'). The rails only drive it.
+    seam:   core.seam.Seam (rail_a/rail_b expose world_plug / driver_vertex_ids).
     """
     n = seam.pair_count
     rail_a = seam.rail_a
@@ -50,15 +52,16 @@ def build_seam_dynamic(final_mesh, seam, seam_index, rig_root=None):
     flip_b = aligned_b != pb
     pairs = list(zip(pa, aligned_b))
 
-    # -- bake correspondence onto final_mesh ------------------------------- #
-    corr_a, corr_b = bake_correspondence(final_mesh, pairs)
+    # -- bake correspondence onto the target (mesh verts or curve CVs) ----- #
+    corr_a, corr_b = bake_correspondence(target, pairs)
     members = sorted(set(corr_a) | set(corr_b))
     if not members:
         raise RuntimeError(
-            "seam %d: no final_mesh vertices matched the rails" % seam_index)
+            "seam %d: no target components matched the rails" % seam_index)
 
     # -- create deformer with seam-only membership ------------------------- #
-    comps = ["%s.vtx[%d]" % (final_mesh, v) for v in members]
+    comp_token = "cv" if target_kind == "curve" else "vtx"
+    comps = ["%s.%s[%d]" % (target, comp_token, v) for v in members]
     cmds.select(comps, replace=True)
     node = cmds.deformer(type=DEFORMER_TYPE,
                          name="zipper_seam%d_DEF" % seam_index)[0]

@@ -18,7 +18,7 @@ from maya import cmds
 
 from ..core.rail import from_spec as rail_from_spec
 from ..core.seam import Seam
-from .validate import validate, resolve_final_mesh
+from .validate import validate, resolve_target, resolve_morph_target
 from . import build_dynamic
 from . import build_morph
 
@@ -96,8 +96,10 @@ def build(rig_spec, validate_first=True):
             raise ZipperValidationError(report)
 
     mechanic = rig_spec["mechanic"]
-    final_mesh = resolve_final_mesh(rig_spec)  # explicit, else inferred from edges
-    morph_mesh = rig_spec.get("morph_mesh")
+    # Deform target: a mesh (mesh mode / inferred from edges) or a NURBS curve
+    # (curve mode -- rails drive a separately-picked target curve).
+    target, target_kind = resolve_target(rig_spec)
+    morph_target = resolve_morph_target(rig_spec)
     seams_spec = rig_spec["seams"]
 
     if mechanic == "dynamic":
@@ -126,10 +128,11 @@ def build(rig_spec, validate_first=True):
 
             seam = _seam_from_spec(seam_spec)
             if mechanic == "dynamic":
-                build_dynamic.build_seam_dynamic(final_mesh, seam, i, rig_root)
+                build_dynamic.build_seam_dynamic(
+                    target, seam, i, rig_root, target_kind)
             else:
                 build_morph.build_seam_morph(
-                    final_mesh, morph_mesh, seam, i, rig_root)
+                    target, morph_target, seam, i, rig_root)
 
         return rig_root
 

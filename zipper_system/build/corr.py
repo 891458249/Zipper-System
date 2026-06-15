@@ -1,30 +1,53 @@
 # -*- coding: utf-8 -*-
-"""Bake the pair<->final_mesh vertex correspondence (ARCHITECTURE.md sec.A).
+"""Bake the pair<->target-component correspondence (ARCHITECTURE.md sec.A).
 
-For each sampled pair k we find the final_mesh vertex nearest a_k (corrA[k]) and
-nearest b_k (corrB[k]). The deformer stores these as int arrays and uses them to
-know which membership vertices belong to which pair (and thus which wipe weight
-and midline to apply). om2 only.
+For each sampled pair k we find the deform target's component (mesh vertex or
+NURBS curve CV) nearest a_k (corrA[k]) and nearest b_k (corrB[k]). The deformer
+stores these as int arrays and uses them to know which membership components
+belong to which pair. The target may be a MESH (vertices) or a CURVE (CVs) -- the
+deformer iterates either identically via MItGeometry. om2 only.
 """
 from __future__ import absolute_import, division, print_function
-
-
-# Python 3.7-common syntax only.
 
 from maya.api import OpenMaya as om
 
 
-def _mesh_world_points(mesh_name):
+def _target_dag(name):
     sel = om.MSelectionList()
-    sel.add(mesh_name)
+    sel.add(name)
     dag = sel.getDagPath(0)
-    dag.extendToShape()
-    fn = om.MFnMesh(dag)
-    return fn.getPoints(om.MSpace.kWorld)
+    try:
+        dag.extendToShape()
+    except RuntimeError:
+        pass
+    return dag
 
 
-def _nearest_vertex(points, target):
-    """Linear nearest-vertex search; target is an (x,y,z) tuple."""
+def target_kind(name):
+    """Return 'mesh' | 'curve' | None for the named deform target."""
+    try:
+        dag = _target_dag(name)
+    except RuntimeError:
+        return None
+    if dag.hasFn(om.MFn.kMesh):
+        return "mesh"
+    if dag.hasFn(om.MFn.kNurbsCurve):
+        return "curve"
+    return None
+
+
+def _target_world_points(name):
+    """Return (MPointArray of component world positions, kind)."""
+    dag = _target_dag(name)
+    if dag.hasFn(om.MFn.kMesh):
+        return om.MFnMesh(dag).getPoints(om.MSpace.kWorld), "mesh"
+    if dag.hasFn(om.MFn.kNurbsCurve):
+        return om.MFnNurbsCurve(dag).cvPositions(om.MSpace.kWorld), "curve"
+    raise ValueError("target %r is neither a mesh nor a NURBS curve" % (name,))
+
+
+def _nearest_index(points, target):
+    """Linear nearest-component search; target is an (x,y,z) tuple."""
     tx, ty, tz = target
     best_i = 0
     best_d = None
@@ -40,16 +63,17 @@ def _nearest_vertex(points, target):
     return best_i
 
 
-def bake_correspondence(final_mesh, pairs):
+def bake_correspondence(target, pairs):
     # type: (str, list) -> tuple
-    """Return (corrA, corrB) -- final_mesh vertex ids per pair.
+    """Return (corrA, corrB) -- target component ids per pair.
 
-    pairs: list of (a_k, b_k) world-space point tuples (from Seam.sample_pairs).
+    *target* is a mesh or NURBS curve. *pairs* is a list of (a_k, b_k) world
+    points (from Seam.sample_pairs).
     """
-    pts = _mesh_world_points(final_mesh)
+    pts, _kind = _target_world_points(target)
     corr_a = []
     corr_b = []
     for (a_k, b_k) in pairs:
-        corr_a.append(_nearest_vertex(pts, a_k))
-        corr_b.append(_nearest_vertex(pts, b_k))
+        corr_a.append(_nearest_index(pts, a_k))
+        corr_b.append(_nearest_index(pts, b_k))
     return corr_a, corr_b

@@ -140,9 +140,14 @@ class ZipperWidget(QtWidgets.QWidget):
         grid.addWidget(self.invert_chk, r, 1)
         grid.addWidget(HelpButton("invert_wipe"), r, 2); r += 1
 
-        self.final_field = _PickField(
-            selection.get_selected_mesh, "final_auto")
-        self._add_grid_row(grid, r, "final_mesh", self.final_field); r += 1
+        # Final target: checkbox toggles Mesh (checked) vs Curve (unchecked).
+        self.target_chk = QtWidgets.QCheckBox(tr("final_mesh"))
+        self.target_chk.setChecked(True)
+        self.target_chk.toggled.connect(self._on_target_kind_changed)
+        self.final_field = _PickField(self._pick_target, "final_auto")
+        grid.addWidget(self.target_chk, r, 0)
+        grid.addWidget(self.final_field, r, 1)
+        grid.addWidget(HelpButton("final_mesh"), r, 2); r += 1
 
         self.ctrl_field = _PickField(
             selection.get_selected_node, "nothing_picked")
@@ -166,10 +171,10 @@ class ZipperWidget(QtWidgets.QWidget):
         mech_lay.addLayout(mrow)
 
         mm_row = QtWidgets.QHBoxLayout()
-        self._morph_label = self._label("morph_mesh")
+        self._morph_label = QtWidgets.QLabel(tr("morph_mesh"))
         mm_row.addWidget(self._morph_label)
         self.morph_field = _PickField(
-            selection.get_selected_mesh, "morph_placeholder")
+            self._pick_morph_target, "morph_placeholder")
         mm_row.addWidget(self.morph_field, 1)
         mm_row.addWidget(HelpButton("morph_mesh"))
         mech_lay.addLayout(mm_row)
@@ -206,6 +211,38 @@ class ZipperWidget(QtWidgets.QWidget):
         set_language(_LANGS[idx] if 0 <= idx < len(_LANGS) else "en")
         self._retranslate()
 
+    # ------------------------------------------------------------------ #
+    # deform target: mesh (checked) vs curve (unchecked)
+    # ------------------------------------------------------------------ #
+    def _target_is_mesh(self):
+        return self.target_chk.isChecked()
+
+    def _pick_target(self):
+        from ..build import selection
+        if self._target_is_mesh():
+            return selection.get_selected_mesh()
+        return selection.get_selected_curve()
+
+    def _pick_morph_target(self):
+        from ..build import selection
+        if self._target_is_mesh():
+            return selection.get_selected_mesh()
+        return selection.get_selected_curve()
+
+    def _on_target_kind_changed(self, _checked=None):
+        is_mesh = self._target_is_mesh()
+        self.final_field.field.setText("")
+        self.final_field._placeholder_key = (
+            "final_auto" if is_mesh else "nothing_picked")
+        self._refresh_target_labels()
+
+    def _refresh_target_labels(self):
+        is_mesh = self._target_is_mesh()
+        self.target_chk.setText(tr("final_mesh") if is_mesh else tr("final_curve"))
+        self._morph_label.setText(
+            tr("morph_mesh") if is_mesh else tr("morph_curve"))
+        self.final_field.retranslate()
+
     def _retranslate(self):
         self.setWindowTitle(tr("win_title"))
         for key, lbl in self._labels.items():
@@ -221,7 +258,7 @@ class ZipperWidget(QtWidgets.QWidget):
         self.dir_combo.setCurrentIndex(di)
         self.dir_combo.blockSignals(False)
         self.invert_chk.setText(tr("invert_wipe"))
-        self.final_field.retranslate()
+        self._refresh_target_labels()
         self.ctrl_field.retranslate()
         self.morph_field.retranslate()
         self._mech_box.setTitle(tr("mechanic"))
@@ -299,11 +336,16 @@ class ZipperWidget(QtWidgets.QWidget):
                 "invert": self.invert_chk.isChecked(),
                 "controller": self.ctrl_field.text(),
             })
+        is_mesh = self._target_is_mesh()
+        target_text = self.final_field.text()
+        morph_text = self.morph_field.text() if mechanic == "morph" else ""
         return {
             "name": self.name_edit.text().strip() or "zipperRig",
-            "final_mesh": self.final_field.text(),
+            "final_mesh": target_text if is_mesh else "",
+            "final_curve": "" if is_mesh else target_text,
             "mechanic": mechanic,
-            "morph_mesh": self.morph_field.text() if mechanic == "morph" else "",
+            "morph_mesh": morph_text if is_mesh else "",
+            "morph_curve": "" if is_mesh else morph_text,
             "seams": seams,
         }
 

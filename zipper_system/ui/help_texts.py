@@ -57,9 +57,11 @@ _EN = {
         u"only drivers that define the seam path; the seam vertices of THIS "
         u"mesh nearest each sampled pair are driven toward the midline.\n\n"
         u"Optional when a rail is an Edge: it is auto-inferred from the edge's "
-        u"mesh, so you can leave this blank. Required only when both rails are "
-        u"Curves (a curve belongs to no mesh). Press '<' with the mesh "
-        u"selected.",
+        u"mesh, so you can leave this blank.\n\n"
+        u"The checkbox toggles the target type: CHECKED = Final Mesh (deform a "
+        u"polygon mesh); UNCHECKED = Final Curve (curve-only -- the rails drive "
+        u"a separately-picked NURBS curve, no mesh needed). Press '<' with the "
+        u"mesh/curve selected.",
     "controller":
         u"The control object whose 'zip' attribute (0..1) drives this seam's "
         u"closure. If it has no 'zip' attribute one is added automatically and "
@@ -124,8 +126,10 @@ _ZH = {
     "final_mesh":
         u"真正被「变形」的网格（如头部）。轨只是定义缝路径的驱动；会在「这个网格」上"
         u"找到离每个采样对最近的缝顶点，把它们拉向中线。\n\n"
-        u"当某条轨用「边」时可不填：会自动从该边所属的网格推断。仅当两条轨都用「曲线」"
-        u"时才必须指定（曲线不属于任何网格）。选中网格后点 '<'。",
+        u"当某条轨用「边」时可不填：会自动从该边所属的网格推断。\n\n"
+        u"勾选框切换目标类型：勾选 = 最终网格（变形多边形网格）；取消 = 最终曲线"
+        u"（纯曲线模式——轨去驱动另选的一条 NURBS 曲线，无需任何网格）。"
+        u"选中网格/曲线后点 '<'。",
     "controller":
         u"驱动本缝闭合的控制器，其 'zip' 属性 (0..1) 控制闭合量。若没有 'zip' 属性会自动添加并连接。"
         u"选中控制器后点 '<'。",
