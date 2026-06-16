@@ -148,6 +148,13 @@ class ZipperWidget(QtWidgets.QWidget):
         ctrl_lay.addWidget(self.ctrl_attr_edit)
         ctrl_lay.addWidget(HelpButton("controller_attr"))
         self._add_grid_row(grid, r, "controller", ctrl_container); r += 1
+
+        # Build-mode opt-in: OFF (default) = plugin-free native build (downstream
+        # needs no plugin); ON = compact custom-deformer build (needs plugin).
+        self.requires_plugin_chk = QtWidgets.QCheckBox(tr("requires_plugin"))
+        self.requires_plugin_chk.setChecked(False)
+        grid.addWidget(self.requires_plugin_chk, r, 1)
+        grid.addWidget(HelpButton("requires_plugin"), r, 2); r += 1
         root.addLayout(grid)
 
         # actions
@@ -190,6 +197,7 @@ class ZipperWidget(QtWidgets.QWidget):
         self.dir_combo.setCurrentIndex(di)
         self.dir_combo.blockSignals(False)
         self.invert_chk.setText(tr("invert_wipe"))
+        self.requires_plugin_chk.setText(tr("requires_plugin"))
         self.ctrl_field.retranslate()
         self.ctrl_attr_edit.setToolTip(tr("controller_attr"))
         self.validate_btn.setText(tr("validate"))
@@ -243,6 +251,8 @@ class ZipperWidget(QtWidgets.QWidget):
             seams.append(spec)
         return {
             "name": self.name_edit.text().strip() or "zipperRig",
+            "build_mode": ("deformer" if self.requires_plugin_chk.isChecked()
+                           else "native"),
             "seams": seams,
         }
 

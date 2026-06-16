@@ -85,6 +85,12 @@ _EN = {
         u"Name of the zip attribute created on the controller. Use distinct "
         u"names (e.g. mouthZip, eyeZip) to drive several independent zipper "
         u"systems from a single controller. Default: zip.",
+    "requires_plugin":
+        u"Unchecked (default): build with stock Maya nodes only -- the rig opens "
+        u"and animates downstream WITHOUT installing this plugin. Checked: build "
+        u"the compact custom-deformer version (fewer nodes / faster) but "
+        u"downstream MUST have the plugin loaded, or the deformer nodes (and the "
+        u"binding) vanish.",
     "mechanic":
         u"Closure mechanic:\n"
         u"  Dynamic midline - a live deformer recomputes the midline every "
@@ -166,6 +172,10 @@ _ZH = {
     "controller_attr":
         u"在控制器上创建的 zip 属性的名字。给不同拉链系统用不同名字（如 mouthZip、eyeZip），"
         u"即可用同一个控制器分别驱动多套拉链，互不干扰。默认：zip。",
+    "requires_plugin":
+        u"不勾选（默认）：仅用 Maya 原生节点构建——下游【无需安装本插件】即可打开并使用 / 动画该绑定。"
+        u"勾选：构建紧凑的自定义 deformer 版本（节点更少、性能更好），但下游【必须加载本插件】，"
+        u"否则 deformer 节点连同绑定会一起消失。",
     "mechanic":
         u"闭合机制：\n"
         u"  动态中线 —— 实时 deformer 每帧重算中线，密封线跟随嘴部运动（sticky-lips 手感），"
