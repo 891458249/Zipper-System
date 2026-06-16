@@ -31,6 +31,18 @@ _PLUGIN_NODE_TYPE = "ddZipperDeformer"
 _PLUGIN_MODULE_NAME = "zipperSystem"
 _DEFAULT_BUILD_MODE = "native"
 
+# Discoverable metadata stamped onto each rig_root so the Manage tab (and any
+# scripted caller) can enumerate every zipper rig in a scene and show what it is
+# without having to walk its node graph. ``zipperRigRoot`` is the enumeration
+# primary key; the rest are best-effort descriptors (legacy rigs built before
+# this stamp existed are still found via their zipperSeams/zipperNativeNodes
+# message arrays -- see action.zipper_action.list_rigs).
+RIG_ROOT_ATTR = "zipperRigRoot"
+RIG_NAME_ATTR = "zipperRigName"
+RIG_MODE_ATTR = "zipperBuildMode"
+RIG_SEAMCOUNT_ATTR = "zipperSeamCount"
+RIG_CONTROLLERS_ATTR = "zipperControllers"
+
 
 class ZipperValidationError(RuntimeError):
     """Raised when a rig_spec fails pre-validation; carries the report."""
@@ -64,6 +76,51 @@ def ensure_plugin_loaded():
         pass
     from ..deformer import dd_zipper_deformer as ddmod
     cmds.loadPlugin(ddmod.__file__, quiet=True)
+
+
+def _seam_controllers(seams_spec):
+    """De-duplicated, order-preserving controller names across all seams."""
+    seen = []
+    for seam in seams_spec:
+        ctrl = (seam.get("controller") or "").strip()
+        if ctrl and ctrl not in seen:
+            seen.append(ctrl)
+    return seen
+
+
+def _stamp_rig_root(rig_root, rig_spec, mode, seams_spec):
+    """Tag rig_root with discoverable metadata for the Manage tab.
+
+    addAttr only when missing, then setAttr. Wrapped so a stamping failure never
+    fails the build -- the rig is fully functional without the descriptors (it
+    still falls back to its zipperSeams / zipperNativeNodes arrays)."""
+    try:
+        if not cmds.attributeQuery(RIG_ROOT_ATTR, node=rig_root, exists=True):
+            cmds.addAttr(rig_root, longName=RIG_ROOT_ATTR,
+                         attributeType="bool", defaultValue=True)
+        cmds.setAttr("%s.%s" % (rig_root, RIG_ROOT_ATTR), True)
+
+        for attr in (RIG_NAME_ATTR, RIG_MODE_ATTR, RIG_CONTROLLERS_ATTR):
+            if not cmds.attributeQuery(attr, node=rig_root, exists=True):
+                cmds.addAttr(rig_root, longName=attr, dataType="string")
+        cmds.setAttr("%s.%s" % (rig_root, RIG_NAME_ATTR),
+                     rig_spec.get("name", ""), type="string")
+        cmds.setAttr("%s.%s" % (rig_root, RIG_MODE_ATTR), mode, type="string")
+        cmds.setAttr("%s.%s" % (rig_root, RIG_CONTROLLERS_ATTR),
+                     ",".join(_seam_controllers(seams_spec)), type="string")
+
+        if not cmds.attributeQuery(RIG_SEAMCOUNT_ATTR, node=rig_root,
+                                   exists=True):
+            cmds.addAttr(rig_root, longName=RIG_SEAMCOUNT_ATTR,
+                         attributeType="long")
+        cmds.setAttr("%s.%s" % (rig_root, RIG_SEAMCOUNT_ATTR), len(seams_spec))
+    except Exception as exc:                               # noqa: BLE001
+        # Best-effort: a missing/failed stamp degrades to legacy fallback.
+        try:
+            cmds.warning("Zipper System: rig_root metadata stamp skipped (%s)"
+                         % exc)
+        except Exception:
+            pass
 
 
 def build(rig_spec, validate_first=True):
@@ -103,6 +160,10 @@ def build(rig_spec, validate_first=True):
                 edit=True, step=1,
                 status="Seam %d / %d" % (i + 1, len(seams_spec)))
             builder.build_seam(seam_spec, i, rig_root)
+
+        # Stamp discoverable metadata once all seams exist (so zipperSeamCount
+        # reflects the real built count). Inside the chunk -> reverts with undo.
+        _stamp_rig_root(rig_root, rig_spec, mode, seams_spec)
 
         return rig_root
 
