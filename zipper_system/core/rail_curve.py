@@ -117,3 +117,24 @@ class CurveRail(RailSource):
         cvs = self._fn.cvPositions(om.MSpace.kWorld)
         pts = [(p.x, p.y, p.z) for p in cvs]
         return pts, list(range(len(pts))), "cv"
+
+    def cv_params(self):
+        """Curve parameter associated with each CV (Greville abscissa), CV-id
+        ordered. For a degree-1 curve this is the CV's knot value (the CV lies on
+        the curve at that param), so a pointOnCurveInfo at it tracks that CV; for
+        higher degree it is the standard CV<->param association (a curve point
+        near the CV -- the same approximation the param-driven sampling already
+        makes). Used by the native build to sample a driver curve per CV."""
+        degree = self._fn.degree
+        knots = self._fn.knots()
+        kn = [knots[i] for i in range(len(knots))]
+        ncv = self._fn.numCVs
+        lo, hi = min(kn), max(kn)
+        params = []
+        for i in range(ncv):
+            p = sum(kn[i:i + degree]) / float(degree)
+            # Clamp into the curve's param domain so a pointOnCurveInfo stays
+            # valid (Greville can fall slightly out of range on higher-degree /
+            # periodic curves -- the degree>1 driver-rest approximation).
+            params.append(min(max(p, lo), hi))
+        return params
