@@ -41,6 +41,16 @@ class ZipperAction(object):
         from ..build import zipper_builder
         return zipper_builder.delete_rig(rig_root)
 
+    @staticmethod
+    def reorder_to_chain_end(rig_root):
+        """Push this rig's zipper deformers to the end of their rail chains.
+
+        Use after skinning rails that were built (deformer mode) BEFORE the skin,
+        so the zipper composes correctly (runs downstream of skinCluster).
+        """
+        from ..build.reorder import reorder_rig_to_chain_end
+        return reorder_rig_to_chain_end(rig_root)
+
     # -- interactive ------------------------------------------------------- #
     @staticmethod
     def show_ui():

@@ -35,6 +35,12 @@ def build_menu(*args):
                   annotation="Open the multi-seam zipper builder panel",
                   command=_open_ui)
     cmds.menuItem(parent=MENU_NAME, divider=True)
+    cmds.menuItem(parent=MENU_NAME,
+                  label="Reorder zipper after skin / 蒙皮后重排拉链",
+                  annotation="Push zipper deformers to the end of their rail "
+                             "chains (run after skinning a deformer-mode rig)",
+                  command=_reorder_after_skin)
+    cmds.menuItem(parent=MENU_NAME, divider=True)
     cmds.menuItem(parent=MENU_NAME, label="Load Deformer Plug-in",
                   annotation="Load the ddZipperDeformer plug-in",
                   command=_load_plugin)
@@ -62,6 +68,27 @@ def _open_ui(*args):
         cmds.warning("Zipper System: plug-in load skipped (%s)" % exc)
     from .zipper_action import ZipperAction
     ZipperAction.show_ui()
+
+
+def _reorder_after_skin(*args):
+    import maya.cmds as cmds
+    # Selected rig roots, else every zipper rig in the scene.
+    roots = [n for n in (cmds.ls(selection=True, long=True) or [])
+             if cmds.attributeQuery("zipperSeams", node=n, exists=True)]
+    if not roots:
+        roots = [n for n in (cmds.ls(long=True) or [])
+                 if cmds.attributeQuery("zipperSeams", node=n, exists=True)]
+    if not roots:
+        cmds.warning("Zipper System: no deformer-mode zipper rig found "
+                     "(native rigs need no reordering).")
+        return
+    from .zipper_action import ZipperAction
+    total = 0
+    for root in roots:
+        total += len(ZipperAction.reorder_to_chain_end(root) or [])
+    cmds.inViewMessage(
+        assistMessage="Zipper reordered after skin (%d deformer(s))." % total,
+        position="midCenter", fade=True)
 
 
 def _load_plugin(*args):
