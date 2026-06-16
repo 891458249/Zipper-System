@@ -36,6 +36,18 @@ _EN = {
         u"The second side curve of this seam, opposite Rail A. Press '<' with a "
         u"NURBS curve selected. Its CVs zip onto the same Mid Curve, so at "
         u"zip = 1 both rails lie on the Mid Curve.",
+    "rail_n":
+        u"One side (rail) curve of this seam. Press '<' with a NURBS curve "
+        u"selected. Every rail's CVs zip onto the same Mid Curve, reaching it "
+        u"exactly at zip = 1. Each rail must be a different curve from the Mid "
+        u"Curve and from the other rails.",
+    "add_rail":
+        u"Add another rail curve to this seam. A seam may hold any number of "
+        u"rails (>= 1); each one independently zips onto the same Mid Curve. Use "
+        u"this for 3+ way zips (e.g. multi-flap monster mouths).",
+    "remove_rail":
+        u"Remove the last rail curve from this seam. At least one rail is always "
+        u"kept.",
     "pair_count":
         u"Sampling density N along each rail. Both rails are resampled to N "
         u"evenly arc-length-spaced points and paired (a_k, b_k). Higher = finer "
@@ -114,6 +126,14 @@ _ZH = {
     "rail_b":
         u"本缝的第二条边曲线，与轨 A 相对。选中一条 NURBS 曲线后点 '<'。它的 CV 会拉合到同一条中间曲线，"
         u"所以 zip=1 时两条轨都落在中间曲线上。",
+    "rail_n":
+        u"本缝的一条边（轨）曲线。选中一条 NURBS 曲线后点 '<'。每条轨的 CV 都拉合到同一条中间曲线，"
+        u"zip=1 时精确落在其上。每条轨都必须与中间曲线、以及其他轨是不同的曲线。",
+    "add_rail":
+        u"为本缝新增一条轨曲线。一条缝可容纳任意数量的轨（≥1），每条轨各自独立拉合到同一条中间曲线。"
+        u"用于 3 条及以上的多向拉链（如多瓣怪物嘴）。",
+    "remove_rail":
+        u"删除本缝的最后一条轨曲线（至少保留一条轨）。",
     "pair_count":
         u"沿每条轨的采样密度 N。两条轨各重采样为 N 个按弧长均匀分布的点并配对 (a_k, b_k)。"
         u"越大缝合越细但开销越大。会自动钳制到轨的顶点上限。",

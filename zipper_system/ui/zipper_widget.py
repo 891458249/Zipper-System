@@ -193,6 +193,14 @@ class ZipperWidget(QtWidgets.QWidget):
         self.seam_list.addItem(item)
         self.seam_list.setItemWidget(item, row)
         self._seam_rows.append((item, row))
+        # Rail count is editable per seam; refresh the row height when it changes
+        # so an added rail isn't clipped (and a removed one frees its space).
+        row.sizeChanged.connect(
+            lambda it=item, rw=row: self._refresh_row_size(it, rw))
+
+    def _refresh_row_size(self, item, row):
+        row.adjustSize()
+        item.setSizeHint(row.sizeHint())
 
     def _remove_seam(self):
         if len(self._seam_rows) <= 1:
