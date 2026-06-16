@@ -12,9 +12,11 @@ from maya import cmds
 
 from .validate import validate
 from . import build_dynamic
+from . import build_native
 
 _PLUGIN_NODE_TYPE = "ddZipperDeformer"
 _PLUGIN_MODULE_NAME = "zipperSystem"
+_DEFAULT_BUILD_MODE = "native"
 
 
 class ZipperValidationError(RuntimeError):
@@ -60,7 +62,13 @@ def build(rig_spec, validate_first=True):
             raise ZipperValidationError(report)
 
     seams_spec = rig_spec["seams"]
-    ensure_plugin_loaded()
+    # build_mode: "native" (default, plugin-free stock DG nodes -- downstream
+    # needs no plugin) | "deformer" (compact custom-deformer build). Only the
+    # deformer branch needs the plugin, so native skips loading it entirely.
+    mode = rig_spec.get("build_mode", _DEFAULT_BUILD_MODE)
+    builder = build_native if mode == "native" else build_dynamic
+    if mode != "native":
+        ensure_plugin_loaded()
 
     rig_root = None
     opened = False
@@ -81,7 +89,7 @@ def build(rig_spec, validate_first=True):
             cmds.progressWindow(
                 edit=True, step=1,
                 status="Seam %d / %d" % (i + 1, len(seams_spec)))
-            build_dynamic.build_seam(seam_spec, i, rig_root)
+            builder.build_seam(seam_spec, i, rig_root)
 
         return rig_root
 
@@ -102,3 +110,25 @@ def build(rig_spec, validate_first=True):
             cmds.progressWindow(endProgress=True)
         if opened:
             cmds.undoInfo(closeChunk=True)
+
+
+def delete_rig(rig_root):
+    # type: (str) -> None
+    """Delete a built rig and all its helper nodes, leaving no orphans.
+
+    The native build's helper nodes are plain DG nodes (not under rig_root in
+    the DAG), so deleting the group alone would strip them. They are message-
+    tagged onto rig_root.zipperNativeNodes[] (and deformer nodes onto
+    .zipperSeams[]); collect both and delete them, then the group.
+    """
+    if not (rig_root and cmds.objExists(rig_root)):
+        return
+    extra = []
+    for attr in (build_native.NATIVE_NODES_ATTR, "zipperSeams"):
+        if cmds.attributeQuery(attr, node=rig_root, exists=True):
+            extra.extend(cmds.listConnections("%s.%s" % (rig_root, attr)) or [])
+    doomed = [n for n in set(extra) if cmds.objExists(n)]
+    if doomed:
+        cmds.delete(doomed)
+    if cmds.objExists(rig_root):
+        cmds.delete(rig_root)

@@ -35,6 +35,12 @@ class ZipperAction(object):
         from ..build import zipper_builder
         return zipper_builder.build(rig_spec)
 
+    @staticmethod
+    def delete_rig(rig_root):
+        """Delete a built rig and all its helper nodes (no orphans left)."""
+        from ..build import zipper_builder
+        return zipper_builder.delete_rig(rig_root)
+
     # -- interactive ------------------------------------------------------- #
     @staticmethod
     def show_ui():
