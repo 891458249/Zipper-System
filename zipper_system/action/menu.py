@@ -83,9 +83,11 @@ def _reorder_after_skin(*args):
                      "(native rigs need no reordering).")
         return
     from .zipper_action import ZipperAction
+    from ..build.zipper_builder import undo_chunk
     total = 0
-    for root in roots:
-        total += len(ZipperAction.reorder_to_chain_end(root) or [])
+    with undo_chunk():                       # whole action reverts in one undo
+        for root in roots:
+            total += len(ZipperAction.reorder_to_chain_end(root) or [])
     cmds.inViewMessage(
         assistMessage="Zipper reordered after skin (%d deformer(s))." % total,
         position="midCenter", fade=True)

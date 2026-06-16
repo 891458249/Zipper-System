@@ -8,11 +8,24 @@ curve.
 """
 from __future__ import absolute_import, division, print_function
 
+import contextlib
+
 from maya import cmds
 
 from .validate import validate
 from . import build_dynamic
 from . import build_native
+
+
+@contextlib.contextmanager
+def undo_chunk():
+    """Group every scene edit done inside into a single undoable chunk, so the
+    whole operation reverts with one Ctrl+Z. Nestable (Maya nests chunks)."""
+    cmds.undoInfo(openChunk=True)
+    try:
+        yield
+    finally:
+        cmds.undoInfo(closeChunk=True)
 
 _PLUGIN_NODE_TYPE = "ddZipperDeformer"
 _PLUGIN_MODULE_NAME = "zipperSystem"
@@ -123,12 +136,14 @@ def delete_rig(rig_root):
     """
     if not (rig_root and cmds.objExists(rig_root)):
         return
-    extra = []
-    for attr in (build_native.NATIVE_NODES_ATTR, "zipperSeams"):
-        if cmds.attributeQuery(attr, node=rig_root, exists=True):
-            extra.extend(cmds.listConnections("%s.%s" % (rig_root, attr)) or [])
-    doomed = [n for n in set(extra) if cmds.objExists(n)]
-    if doomed:
-        cmds.delete(doomed)
-    if cmds.objExists(rig_root):
-        cmds.delete(rig_root)
+    with undo_chunk():
+        extra = []
+        for attr in (build_native.NATIVE_NODES_ATTR, "zipperSeams"):
+            if cmds.attributeQuery(attr, node=rig_root, exists=True):
+                extra.extend(
+                    cmds.listConnections("%s.%s" % (rig_root, attr)) or [])
+        doomed = [n for n in set(extra) if cmds.objExists(n)]
+        if doomed:
+            cmds.delete(doomed)
+        if cmds.objExists(rig_root):
+            cmds.delete(rig_root)

@@ -13,6 +13,8 @@ from __future__ import absolute_import, division, print_function
 
 from maya import cmds
 
+from .zipper_builder import undo_chunk
+
 DEFORMER_TYPE = "ddZipperDeformer"
 _SEAMS_ATTR = "zipperSeams"
 
@@ -56,8 +58,9 @@ def reorder_rig_to_chain_end(rig_root):
     if not cmds.attributeQuery(_SEAMS_ATTR, node=rig_root, exists=True):
         return []
     done = []
-    for d in cmds.listConnections("%s.%s" % (rig_root, _SEAMS_ATTR)) or []:
-        if cmds.objExists(d) and cmds.nodeType(d) == DEFORMER_TYPE:
-            reorder_zipper_to_end(d)
-            done.append(d)
+    with undo_chunk():
+        for d in cmds.listConnections("%s.%s" % (rig_root, _SEAMS_ATTR)) or []:
+            if cmds.objExists(d) and cmds.nodeType(d) == DEFORMER_TYPE:
+                reorder_zipper_to_end(d)
+                done.append(d)
     return done
