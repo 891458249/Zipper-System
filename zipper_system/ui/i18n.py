@@ -98,6 +98,25 @@ _EN = {
     "msg_build_failed": u"Build failed",
     "edges_count": u"{0} edge(s) on {1}",
     "pick_warn": u"Pick",
+    # -- Manage tab ------------------------------------------------------- #
+    "tab_build": u"Build",
+    "tab_manage": u"Manage",
+    "mgr_refresh": u"Refresh",
+    "mgr_select_scene": u"Select in scene",
+    "mgr_delete_selected": u"Delete selected",
+    "mgr_count": u"{0} rig(s)",
+    "col_check": u"",
+    "col_name": u"Name",
+    "col_mode": u"Mode",
+    "col_seams": u"Seams",
+    "col_controllers": u"Controllers",
+    "col_nodes": u"#Nodes",
+    "mgr_none": u"(no zipper rigs in the scene)",
+    "mgr_confirm_title": u"Delete zipper rigs",
+    "mgr_confirm_text": u"Delete these {0} rig(s)? This removes only the "
+                        u"plugin-created nodes; your input curves and "
+                        u"controllers are kept.\n\n{1}",
+    "mgr_confirm_none": u"Check at least one rig first.",
 }
 
 _ZH = {
@@ -149,6 +168,24 @@ _ZH = {
     "msg_build_failed": u"构建失败",
     "edges_count": u"{1} 上的 {0} 条边",
     "pick_warn": u"拾取",
+    # -- Manage tab ------------------------------------------------------- #
+    "tab_build": u"构建",
+    "tab_manage": u"管理",
+    "mgr_refresh": u"刷新",
+    "mgr_select_scene": u"在场景选择",
+    "mgr_delete_selected": u"删除选中",
+    "mgr_count": u"{0} 套绑定",
+    "col_check": u"",
+    "col_name": u"名称",
+    "col_mode": u"模式",
+    "col_seams": u"缝数",
+    "col_controllers": u"控制器",
+    "col_nodes": u"节点数",
+    "mgr_none": u"（场景中没有拉链绑定）",
+    "mgr_confirm_title": u"删除拉链绑定",
+    "mgr_confirm_text": u"确定删除这 {0} 套绑定？仅会删除插件创建的节点，"
+                        u"你的输入曲线与控制器会保留。\n\n{1}",
+    "mgr_confirm_none": u"请先勾选至少一套绑定。",
 }
 
 _TABLES = {"en": _EN, "zh": _ZH}

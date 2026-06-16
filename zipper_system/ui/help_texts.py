@@ -115,6 +115,22 @@ _EN = {
     "language":
         u"Switch the interface language between English and Chinese. The choice "
         u"is remembered across Maya sessions.",
+    "mgr_refresh":
+        u"Re-scan the scene and rebuild the list of zipper rigs. A rig is found "
+        u"by its 'zipperRigRoot' stamp, or (for older rigs) by the message tags "
+        u"on its root group. The list also auto-refreshes when you open this tab "
+        u"and after a delete.",
+    "mgr_select_scene":
+        u"Select, in the scene, every checked rig: its root group plus all the "
+        u"nodes the plugin created for it (deformers / helper nodes / drivers). "
+        u"Your own input curves and controllers are NOT selected, so the "
+        u"selection shows exactly what the rig owns. Double-clicking a row does "
+        u"the same for that one rig.",
+    "mgr_delete_selected":
+        u"Delete every checked rig after a confirmation. This removes only the "
+        u"plugin-created nodes and the rig's root group -- your input curves and "
+        u"controllers are left untouched. All deletions share one undo chunk, so "
+        u"a single Ctrl+Z brings them all back. The list refreshes afterwards.",
 }
 
 _ZH = {
@@ -192,6 +208,16 @@ _ZH = {
         u"先校验，再在单个 undo 块内带进度条构建绑定。任何错误都会整体回滚——不残留孤立节点。",
     "language":
         u"在中文与英文之间切换界面语言。该选择会跨 Maya 会话记住。",
+    "mgr_refresh":
+        u"重新扫描场景并刷新拉链绑定列表。通过绑定根组上的 'zipperRigRoot' 标记识别；"
+        u"旧绑定则回退到根组上的 message 标记识别。切到本标签页时、以及删除后都会自动刷新。",
+    "mgr_select_scene":
+        u"在场景中选中所有勾选的绑定：其根组，以及插件为它创建的全部节点"
+        u"（deformer / 辅助节点 / driver）。【不会】选中你自己的输入曲线和控制器，"
+        u"因此选择集恰好是该绑定所拥有的内容。双击某一行等同于只对该行做此操作。",
+    "mgr_delete_selected":
+        u"在确认后删除所有勾选的绑定。仅删除插件创建的节点及绑定根组——你的输入曲线和控制器"
+        u"原样保留。所有删除共用一个 undo 块，一次 Ctrl+Z 即可全部恢复。完成后列表自动刷新。",
 }
 
 _TABLES = {"en": _EN, "zh": _ZH}

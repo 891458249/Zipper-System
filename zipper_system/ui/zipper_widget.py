@@ -54,6 +54,11 @@ class _PickField(QtWidgets.QWidget):
 
 class ZipperWidget(QtWidgets.QWidget):
 
+    # Emitted after the user switches language (and this widget has already
+    # retranslated itself), so the host window can retranslate sibling widgets
+    # and the tab titles in one place.
+    languageChanged = qt.Signal()
+
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         self.setObjectName(_WINDOW_OBJECT)
@@ -182,6 +187,7 @@ class ZipperWidget(QtWidgets.QWidget):
     def _on_language_changed(self, idx):
         set_language(_LANGS[idx] if 0 <= idx < len(_LANGS) else "en")
         self._retranslate()
+        self.languageChanged.emit()
 
     def _retranslate(self):
         self.setWindowTitle(tr("win_title"))
@@ -290,17 +296,3 @@ class ZipperWidget(QtWidgets.QWidget):
             return
         QtWidgets.QMessageBox.information(
             self, tr("msg_build"), tr("msg_build_done").format(root))
-
-
-def show():
-    """Create (or re-show) the Zipper System panel, parented to Maya."""
-    parent = qt.main_maya_window()
-    try:
-        globals()["_INSTANCE"].close()
-        globals()["_INSTANCE"].deleteLater()
-    except Exception:
-        pass
-    widget = ZipperWidget(parent)
-    widget.show()
-    globals()["_INSTANCE"] = widget
-    return widget
