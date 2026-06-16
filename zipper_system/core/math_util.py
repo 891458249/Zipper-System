@@ -149,3 +149,27 @@ def wipe_weight(k, n, z, beta, direction="both", invert=False):
         return 1.0 if z >= t else 0.0
     front = z * (1.0 + beta)
     return clamp((front - t) / beta, 0.0, 1.0)
+
+
+def wipe_ramp_bounds(k, n, beta, direction="both", invert=False):
+    # type: (int, int, float, str, bool) -> tuple
+    """(inputMin, inputMax) of a LINEAR ramp on z that reproduces ``wipe_weight``.
+
+    ``wipe_weight`` for beta > 0 is exactly linear in z:
+        w = clamp((z*(1+beta) - t) / beta, 0, 1)
+          = clamp((z - lo) / (hi - lo), 0, 1)
+    with lo = t/(1+beta) and hi = (t+beta)/(1+beta). This lets the plugin-free
+    native build bake the identical wipe into a remapValue node (inputMin=lo,
+    inputMax=hi, default linear value ramp 0..1) so both build modes are visually
+    identical. hi <= 1 always (t <= 1), so z = 1 -> w = 1 (perfect close).
+
+    beta <= 0 is the hard-step case (w = 1 iff z >= t); we approximate it with a
+    razor-thin ramp ending at t so the remapValue still steps at the threshold.
+    """
+    t = wipe_threshold(k, n, direction, invert)
+    if beta <= 0.0:
+        eps = 1e-4
+        hi = t if t > eps else eps
+        lo = hi - eps
+        return (lo, hi)
+    return (t / (1.0 + beta), (t + beta) / (1.0 + beta))
