@@ -95,6 +95,15 @@ class CurveRail(RailSource):
         """Plug to connect into a deformer rail input (curve world geometry)."""
         return "%s.worldSpace[0]" % (self._dag.fullPathName(),)
 
+    def world_matrix_plug(self):
+        """Plug for this curve's world matrix.
+
+        The deformer samples driver geometry fed through a generic attribute in
+        object space (the world transform is NOT baked into that data path), so
+        it needs this matrix to lift the samples back into world space.
+        """
+        return "%s.worldMatrix[0]" % (self._dag.fullPathName(),)
+
     def driver_vertex_ids(self):
         """Curve rails carry no ordered vertex ids (returns empty list)."""
         return []

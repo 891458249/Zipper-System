@@ -92,6 +92,11 @@ def _conform_rail(rail, mid_rail, mid_plug, side, seam_index, params, rig_root):
     _set_int_array("%s.railBVerts" % node, [])
     cmds.connectAttr(mid_plug, "%s.railA" % node, force=True)
     cmds.connectAttr(mid_plug, "%s.railB" % node, force=True)
+    # Driver geometry is sampled in object space; feed mid's world matrix so the
+    # deformer can lift those samples to world space (robust to unfrozen curves).
+    mid_matrix = mid_rail.world_matrix_plug()
+    cmds.connectAttr(mid_matrix, "%s.railAMatrix" % node, force=True)
+    cmds.connectAttr(mid_matrix, "%s.railBMatrix" % node, force=True)
 
     controller = params.get("controller")
     if controller and cmds.objExists(controller):

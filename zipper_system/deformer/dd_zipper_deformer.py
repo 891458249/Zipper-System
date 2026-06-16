@@ -53,6 +53,8 @@ class DDZipperDeformer(ompx.MPxDeformerNode):
     # attribute MObjects (populated in nodeInitializer)
     aRailA = om.MObject()
     aRailB = om.MObject()
+    aRailAMatrix = om.MObject()
+    aRailBMatrix = om.MObject()
     aRailAVerts = om.MObject()
     aRailBVerts = om.MObject()
     aPairCount = om.MObject()
@@ -82,6 +84,19 @@ class DDZipperDeformer(ompx.MPxDeformerNode):
             return []
         arr = om.MFnIntArrayData(obj).array()
         return [int(arr[i]) for i in range(arr.length())]
+
+    @staticmethod
+    def _to_world(pts, mtx):
+        """Lift object-space sample points into world space by mtx.
+
+        Driver geometry arrives through a generic attribute in object space, so
+        each sampled point is multiplied by the driver's world matrix. For a
+        frozen (identity-matrix) curve this is a no-op."""
+        out = []
+        for (x, y, z) in pts:
+            p = om.MPoint(x, y, z) * mtx
+            out.append((p.x, p.y, p.z))
+        return out
 
     @staticmethod
     def _sample_rail_world(data_obj, n, ordered_vids):
@@ -145,6 +160,12 @@ class DDZipperDeformer(ompx.MPxDeformerNode):
         b_pts = self._sample_rail_world(rail_b_obj, n, vids_b)
         if a_pts is None or b_pts is None:
             return
+        # Samples are in the drivers' object space; lift to world via their world
+        # matrices (identity for frozen curves, so behaviour is unchanged there).
+        a_mtx = data_block.inputValue(self.aRailAMatrix).asMatrix()
+        b_mtx = data_block.inputValue(self.aRailBMatrix).asMatrix()
+        a_pts = self._to_world(a_pts, a_mtx)
+        b_pts = self._to_world(b_pts, b_mtx)
         if data_block.inputValue(self.aFlipB).asBool():
             b_pts = b_pts[::-1]
 
@@ -201,6 +222,7 @@ def nodeInitializer():
     eAttr = om.MFnEnumAttribute()
     tAttr = om.MFnTypedAttribute()
     gAttr = om.MFnGenericAttribute()
+    mAttr = om.MFnMatrixAttribute()
 
     out_geom = ompx.cvar.MPxGeometryFilter_outputGeom
 
@@ -220,6 +242,19 @@ def nodeInitializer():
     gAttr.setKeyable(False)
     cls.addAttribute(cls.aRailB)
     cls.attributeAffects(cls.aRailB, out_geom)
+
+    # -- driver world matrices: lift object-space samples to world --------- #
+    cls.aRailAMatrix = mAttr.create("railAMatrix", "ram")
+    mAttr.setStorable(False)
+    mAttr.setKeyable(False)
+    cls.addAttribute(cls.aRailAMatrix)
+    cls.attributeAffects(cls.aRailAMatrix, out_geom)
+
+    cls.aRailBMatrix = mAttr.create("railBMatrix", "rbm")
+    mAttr.setStorable(False)
+    mAttr.setKeyable(False)
+    cls.addAttribute(cls.aRailBMatrix)
+    cls.attributeAffects(cls.aRailBMatrix, out_geom)
 
     # -- ordered vertex ids for mesh rails (empty for curve rails) --------- #
     cls.aRailAVerts = tAttr.create("railAVerts", "rav",
