@@ -95,7 +95,7 @@ def test_reject_mid_equals_rail_a():
     rail_a = cmds.ls(_line_curve("railA", -2.0), long=True)[0]
     rail_b = cmds.ls(_line_curve("railB", 2.0), long=True)[0]
     # mid mis-picked as rail_a (the exact degeneration: B->A, A static).
-    spec = {"name": "bad", "seams": [{
+    spec = {"name": "bad", "build_mode": "deformer", "seams": [{
         "mid": rail_a, "rails": [rail_a, rail_b],
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": "",
@@ -132,7 +132,7 @@ def test_regression_converge_to_mid():
     rail_b = cmds.ls(_line_curve("railB", 2.0), long=True)[0]
     ctrl = cmds.spaceLocator(name="zipCTRL")[0]
 
-    spec = {"name": "good", "seams": [{
+    spec = {"name": "good", "build_mode": "deformer", "seams": [{
         "mid": mid, "rails": [rail_a, rail_b],
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": ctrl,

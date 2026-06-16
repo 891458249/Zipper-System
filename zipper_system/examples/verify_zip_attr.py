@@ -71,10 +71,10 @@ def test_two_systems_one_controller():
     mid2 = _line("mid2", 20.0, 10.0)
     a2, b2 = _line("a2", 20.0, 12.0), _line("b2", 20.0, 8.0)
 
-    zipper_builder.build({"name": "mouthSys", "seams": [{
+    zipper_builder.build({"name": "mouthSys", "build_mode": "deformer", "seams": [{
         "mid": mid1, "rails": [a1, b1], "feather": 0.15, "direction": "both",
         "invert": False, "controller": ctrl, "zip_attr": "mouthZip"}]})
-    zipper_builder.build({"name": "eyeSys", "seams": [{
+    zipper_builder.build({"name": "eyeSys", "build_mode": "deformer", "seams": [{
         "mid": mid2, "rails": [a2, b2], "feather": 0.15, "direction": "both",
         "invert": False, "controller": ctrl, "zip_attr": "eyeZip"}]})
 
@@ -119,7 +119,7 @@ def test_default_zip_attr():
     mid = _line("midL", 0.0, 0.0)
     rail = _line("aL", 0.0, 2.0)
     # No zip_attr key at all -> must behave exactly like the old "zip" default.
-    zipper_builder.build({"name": "legacy", "seams": [{
+    zipper_builder.build({"name": "legacy", "build_mode": "deformer", "seams": [{
         "mid": mid, "rails": [rail], "feather": 0.15, "direction": "both",
         "invert": False, "controller": ctrl}]})
     check(cmds.attributeQuery("zip", node=ctrl, exists=True),

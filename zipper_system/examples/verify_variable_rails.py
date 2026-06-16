@@ -89,7 +89,7 @@ def test_three_rails_frozen():
     mid = _line("midC", 0.0)
     rails = [_line("railA", -3.0), _line("railB", 3.0), _line("railC", -6.0)]
     ctrl = cmds.spaceLocator(name="zipCTRL")[0]
-    spec = {"name": "tri", "seams": [{
+    spec = {"name": "tri", "build_mode": "deformer", "seams": [{
         "mid": mid, "rails": rails,
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": ctrl,
@@ -121,7 +121,7 @@ def test_unfrozen_transforms():
     cmds.setAttr(rail_a + ".translateX", -4.0)
     cmds.setAttr(rail_b + ".translateX", 8.0)
     ctrl = cmds.spaceLocator(name="zipCTRL")[0]
-    spec = {"name": "unfrozen", "seams": [{
+    spec = {"name": "unfrozen", "build_mode": "deformer", "seams": [{
         "mid": mid, "rails": [rail_a, rail_b],
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": ctrl,
@@ -144,7 +144,7 @@ def test_reject_mid_as_rail():
     cmds.file(new=True, force=True)
     mid = _line("midC", 0.0)
     rail_b = _line("railB", 3.0)
-    spec = {"name": "bad", "seams": [{
+    spec = {"name": "bad", "build_mode": "deformer", "seams": [{
         "mid": mid, "rails": [mid, rail_b],     # mid duplicated as a rail
         "feather": 0.15, "direction": "both", "invert": False, "controller": "",
     }]}

@@ -10,10 +10,11 @@ construction history it is a TWEAK on top of .create, so an absolute value would
 double (rest+rest) -> the rail jumps to ~2x rest (looks vanished) and the zip
 slider seems dead. The fix deletes each rail's history before wiring.
 
-Covers:
-  1. History case (cmds.circle, carries makeNurbCircle): build_mode="native"
-     with unfrozen translate; at zip=0 the rail CVs sit at REST (NOT doubled),
-     at zip=1 both rails converge onto the mid curve (and on each other).
+Covers (degree-1 curves carrying construction history -- the supported case;
+degree>1 driver-rest is an accepted approximation, out of scope here):
+  1. History case (a degree-1 line rebuilt WITH history): build_mode="native";
+     at zip=0 the rail CVs sit at REST (NOT doubled), at zip=1 both rails
+     converge onto the mid curve (and on each other).
   2. The pre-fix failure is demonstrated directly: connecting absolute rest into
      a history-bearing curve's controlPoints doubles the CV (rest -> ~2x).
   3. Regression: history-free curves (cmds.curve) still build correctly.
@@ -46,12 +47,15 @@ def check(cond, msg):
         _FAILURES.append(msg)
 
 
-def _circle(name, ty):
-    """A NURBS circle (carries makeNurbCircle history), translated in Y."""
-    crv = cmds.circle(name=name, normal=(0, 0, 1), radius=2.0, sections=8)[0]
-    crv = cmds.ls(crv, long=True)[0]
-    cmds.setAttr(crv + ".translateY", ty)
-    return crv
+def _line_hist(name, x, y):
+    """A degree-1 line WITH construction history, so controlPoints behaves as an
+    additive tweak -- the bug's trigger. rebuildCurve(replaceOriginal=False)
+    yields a new curve whose .create is driven by the rebuild node (real
+    history); CVs stay on the curve, so the native driver-rest is exact here."""
+    src = cmds.curve(degree=1, point=[(x, y, z) for z in (-3, -1, 1, 3)])
+    res = cmds.rebuildCurve(src, constructionHistory=True, replaceOriginal=False,
+                            rebuildType=0, degree=1, spans=3, keepRange=0)
+    return cmds.ls(cmds.rename(res[0], name), long=True)[0]
 
 
 def _line(name, x, y):
@@ -115,10 +119,10 @@ def _max_dist_to_curve(curve, target_curve):
 # --------------------------------------------------------------------------- #
 def test_doubling_repro_without_fix():
     cmds.file(new=True, force=True)
-    crv = _circle("reproCRV", 0.0)
+    crv = _line_hist("reproCRV", 1.0, 1.0)
     shape = _shape(crv)
     rest = cmds.pointPosition(shape + ".cv[0]", world=True)
-    check(_has_history(crv), "circle has construction history (.create driven)")
+    check(_has_history(crv), "curve has construction history (.create driven)")
     # Connect the absolute rest into controlPoints[0] WITHOUT deleting history.
     loc = cmds.spaceLocator(name="restSrc")[0]
     cmds.setAttr(loc + ".translate", rest[0], rest[1], rest[2])
@@ -137,9 +141,9 @@ def test_doubling_repro_without_fix():
 # --------------------------------------------------------------------------- #
 def test_native_on_history_curves():
     cmds.file(new=True, force=True)
-    mid = _circle("midC", 0.0)
-    a = _circle("railA", 3.0)
-    b = _circle("railB", -3.0)
+    mid = _line_hist("midC", 0.0, 0.0)
+    a = _line_hist("railA", 0.0, 3.0)
+    b = _line_hist("railB", 0.0, -3.0)
     ctrl = cmds.spaceLocator(name="zipCTRL")[0]
 
     rest_a = _cvs(a)
