@@ -65,6 +65,26 @@ rig_spec = {
 
 **已移除**（代码层）：`final_mesh` / `final_curve` / `mechanic` / `morph_*`、Edge 轨与网格 corr 烘焙、`build_morph.py`、`corr.py`。`core` 领域层（含 EdgeRail）保留备用。
 
+### 绑定追溯与管理 (Rig traceability & management)
+
+每个绑定可被**枚举 / 在场景追溯 / 勾选删除**，且兼容本功能之前已建好的旧绑定。
+
+- **可发现标记**：`build()` 在 `rig_root`（`<name>_zipperRig` 组）上盖一组属性（仅在不存在时 `addAttr`，
+  再 `setAttr`；包在构建的 undo chunk 内，失败不致使 build 失败 → 退化为下面的回退识别）：
+  `zipperRigRoot`(bool=True, 枚举主键) / `zipperRigName`(string) / `zipperBuildMode`(string, native|deformer) /
+  `zipperSeamCount`(long) / `zipperControllers`(string, 各 seam 去重控制器逗号连接)。
+- **枚举** `ZipperAction.list_rigs()`：扫描带 `zipperRigRoot`，或（**旧绑定回退**）带
+  `zipperSeams[]` / `zipperNativeNodes[]` 的 transform；每条返回 `{root,name,mode,seams,controllers,nodes}`，
+  属性读取均带 exists 检查与回退（旧绑定 name 从节点名推断、mode/seams 记 `"?"`），按 name 排序、root 去重。
+- **追溯** `ZipperAction.select_rig(root)`：选中 `rig_root` + 其 `zipperSeams`/`zipperNativeNodes` 连接的
+  全部创建节点（**不含**用户输入曲线 / 控制器，避免误导）。
+- **删除**：复用 `delete_rig`（已验证只删插件创建物，保留用户曲线 / 控制器）；`delete_rigs(roots)` 为批量便捷，
+  循环调 `delete_rig` 包在单 undo chunk。
+- **UI**：主窗口为 `QTabWidget`（`ui/main_window.py` 的 `ZipperMainWindow`）：Tab0 = Build（原 `ZipperWidget`）、
+  Tab1 = Manage（`ui/rig_manager.py` 的 `RigManagerWidget`，列表 + 勾选 + 在场景选择 + 删除选中，进入页 / 删除后自动刷新）。
+  语言切换由 Build 页的 `languageChanged` 信号统一驱动两页与 tab 标题的 retranslate。
+- 解耦：`list_rigs` / `select_rig` / `delete_rigs` 只用 `cmds`，不碰 UI（沿用 core 解耦红线）。
+
 ---
 
 ## 0. 需求基线 (Requirements Baseline)

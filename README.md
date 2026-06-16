@@ -123,6 +123,33 @@ Maya 内手动冒烟测试：将 `zipper_system/examples/maya_smoke_test.py` 粘
 > 系统**两种方向都暴露**：deformer 增加 `invertWipe` 属性（UI 为「Invert wipe」勾选框），
 > 默认取「两端→中央」（修正公式 `clamp((z − d_k)/β)`），勾选后还原蓝图「中央→两端」曲线。
 
+### 5. 绑定追溯与管理（Manage 标签页）
+
+UI 主窗口为两个标签页：**Build / 构建**（原构建面板）与 **Manage / 管理**。Manage 页列出场景中
+**所有**拉链绑定，每行可勾选，支持「在场景选择」（追溯）与「删除选中」：
+
+- 构建时会在 `rig_root`（`<name>_zipperRig` 组）上盖一组可发现属性：
+  `zipperRigRoot`(bool 主键) / `zipperRigName` / `zipperBuildMode` / `zipperSeamCount` /
+  `zipperControllers`。Manage 页据 `zipperRigRoot` 枚举；**旧绑定**（无此标记）回退用根组上的
+  `zipperSeams[]` / `zipperNativeNodes[]` message 数组识别，仍能列出（元数据尽力而为）。
+- **在场景选择**：选中勾选行的 `rig_root` + 该绑定创建的全部节点（deformer / 辅助节点 / driver），
+  **不含**你的输入曲线与控制器——选择集恰好是该绑定所拥有的内容，便于追溯。双击某行等同于只选该行。
+- **删除选中**：确认后对每个勾选绑定调 `delete_rig`，全部包在一个 undo 块（一次 Ctrl+Z 全部恢复）。
+  删除**只清插件创建的节点**与根组，**不动**你的输入曲线 / 控制器。完成后列表自动刷新。
+- 切到 Manage 页、以及删除后都会自动刷新。
+
+脚本化等价接口：
+
+```python
+from zipper_system.action import ZipperAction
+ZipperAction.list_rigs()        # -> [{root,name,mode,seams,controllers,nodes}, ...]
+ZipperAction.select_rig(root)   # 选中 rig_root + 其创建的全部节点（用于追溯）
+ZipperAction.delete_rigs(roots) # 批量删除（单 undo 块）
+```
+
+Maya standalone 验证脚本：`mayapy zipper_system/examples/verify_rig_manager.py`
+（建两套绑定→断言列出/计数/选择/删除与旧绑定回退正确）。
+
 ## 目录结构
 
 ```
