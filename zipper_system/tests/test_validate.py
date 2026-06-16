@@ -28,13 +28,16 @@ class _FakeCmds(object):
 
     A handle present in `paths` exists and is a NURBS curve; everything ls()
     needs (existence, curve test, long/canonical path) is derived from it.
+    `attrs` maps a node name -> {attr_name: attr_type} for attributeQuery (used
+    by the zip_attr checks); such nodes also report as existing.
     """
 
-    def __init__(self, paths):
+    def __init__(self, paths, attrs=None):
         self._paths = paths
+        self._attrs = attrs or {}
 
     def objExists(self, name):
-        return name in self._paths
+        return name in self._paths or name in self._attrs
 
     def ls(self, name=None, selection=False, dag=False, type=None,
            noIntermediate=False, long=False, flatten=False):
@@ -46,15 +49,40 @@ class _FakeCmds(object):
             return [self._paths[name]] if name in self._paths else []
         return []
 
+    def attributeQuery(self, attr, node=None, exists=False,
+                       attributeType=False):
+        node_attrs = self._attrs.get(node, {})
+        if exists:
+            return attr in node_attrs
+        if attributeType:
+            return node_attrs.get(attr)
+        return None
+
 
 def _spec(mid, rails):
     return {"seams": [{"mid": mid, "rails": list(rails),
                        "direction": "both"}]}
 
 
-def _run(monkeypatch, paths, spec):
-    monkeypatch.setattr(validate, "cmds", _FakeCmds(paths))
+def _run(monkeypatch, paths, spec, attrs=None):
+    monkeypatch.setattr(validate, "cmds", _FakeCmds(paths, attrs))
     return validate.validate(spec)
+
+
+def _ctrl_spec(zip_attr, controller="ctrl"):
+    """A valid mid + 2 rails seam carrying a controller and zip_attr, so the
+    only thing under test is the zip_attr validation."""
+    return {"seams": [{
+        "mid": "mid", "rails": ["railA", "railB"], "direction": "both",
+        "controller": controller, "zip_attr": zip_attr,
+    }]}
+
+
+_CTRL_PATHS = {
+    "mid": "|grp|mid|midShape",
+    "railA": "|grp|railA|railAShape",
+    "railB": "|grp|railB|railBShape",
+}
 
 
 def test_distinct_curves_pass(monkeypatch):
@@ -111,3 +139,47 @@ def test_two_rails_same_object_reports_seam_error(monkeypatch):
     report = _run(monkeypatch, paths, _spec("mid", ["railA", "railB"]))
     assert not report.ok
     assert any("same curve" in m for m in report.seam_errors.get(0, []))
+
+
+# -- zip_attr (custom zip attribute name) ----------------------------------- #
+def test_zip_attr_valid_name_pass(monkeypatch):
+    # Controller exists, attr not yet present -> accepted (build will create it).
+    report = _run(monkeypatch, _CTRL_PATHS, _ctrl_spec("mouthZip"),
+                  attrs={"ctrl": {}})
+    assert report.ok
+
+
+def test_zip_attr_default_when_blank(monkeypatch):
+    report = _run(monkeypatch, _CTRL_PATHS, _ctrl_spec(""), attrs={"ctrl": {}})
+    assert report.ok
+
+
+def test_zip_attr_invalid_leading_digit(monkeypatch):
+    report = _run(monkeypatch, _CTRL_PATHS, _ctrl_spec("1bad"),
+                  attrs={"ctrl": {}})
+    assert not report.ok
+    assert any("not a valid attribute identifier" in m
+               for m in report.seam_errors.get(0, []))
+
+
+def test_zip_attr_invalid_space(monkeypatch):
+    report = _run(monkeypatch, _CTRL_PATHS, _ctrl_spec("a b"),
+                  attrs={"ctrl": {}})
+    assert not report.ok
+    assert any("not a valid attribute identifier" in m
+               for m in report.seam_errors.get(0, []))
+
+
+def test_zip_attr_existing_non_numeric_rejected(monkeypatch):
+    # 'zip' already on the controller as a message attr -> not connectable.
+    report = _run(monkeypatch, _CTRL_PATHS, _ctrl_spec("zip"),
+                  attrs={"ctrl": {"zip": "message"}})
+    assert not report.ok
+    assert any("not a numeric zip attribute" in m
+               for m in report.seam_errors.get(0, []))
+
+
+def test_zip_attr_existing_numeric_pass(monkeypatch):
+    report = _run(monkeypatch, _CTRL_PATHS, _ctrl_spec("zip"),
+                  attrs={"ctrl": {"zip": "double"}})
+    assert report.ok
