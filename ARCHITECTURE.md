@@ -20,6 +20,7 @@
 ```python
 rig_spec = {
   "name": str,
+  "build_mode": "native|deformer",   # 默认 native
   "seams": [
     {"mid": "<curveMid>", "rails": ["<curve0>", "<curve1>", ...],
      "feather": float, "direction": "both|ltr|rtl", "invert": bool,
@@ -31,6 +32,19 @@ rig_spec = {
 > 且 rails 之间也应两两不同（校验层按 shape 全路径判定，防「轨贴到自己 / 贴到另一条轨」）。
 > `zip_attr` 为控制器上驱动属性的名字（缺省 / 留空即 `zip`）；不同系统用不同属性名（如 `mouthZip` / `eyeZip`）
 > 即可**共用一个控制器**分别驱动多套拉链，互不冲突。
+
+### 构建模式 (Build modes)
+
+| `build_mode` | 实现 | 节点 | 下游依赖 | 取舍 |
+|---|---|---|---|---|
+| `native`（**默认**） | 纯原生 Maya DG 节点（每 CV 一条 `pointOnCurveInfo → remapValue → blendColors → pointMatrixMult` 链） | O(CV 数) | **零**——卸载/未装插件也能打开并动画 | 节点多；分发友好 |
+| `deformer` | `ddZipperDeformer` 自定义插件节点（每条 rail 一个） | O(rail 数) | **必须装本插件**，否则节点连同绑定消失 | 紧凑/高性能 |
+
+- 两模式**视觉一致**：native 把 deformer 的 wipe 公式 `clamp((z·(1+β)−t)/β,0,1)` 代数反解成 `remapValue` 的
+  `inputMin=t/(1+β)`、`inputMax=(t+β)/(1+β)`（见 `core.math_util.wipe_ramp_bounds`，与 `wipe_weight` 单源同出）。
+- native 的辅助 DG 节点非 DAG，无法 parent 进组；用 message 挂到 `rig_root.zipperNativeNodes[]`，
+  `zipper_builder.delete_rig(rig_root)` 据此连同 deformer 节点（`zipperSeams[]`）一并清理，删除无残留。
+- `zipper_builder.build` 据 `build_mode` 派发；**native 分支不调用 `ensure_plugin_loaded`**（构建期也不需要插件）。
 
 **已移除**（代码层）：`final_mesh` / `final_curve` / `mechanic` / `morph_*`、Edge 轨与网格 corr 烘焙、`build_morph.py`、`corr.py`。`core` 领域层（含 EdgeRail）保留备用。
 

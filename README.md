@@ -74,6 +74,7 @@ ZipperAction.show_ui()
 from zipper_system.action import ZipperAction
 rig_spec = {
     "name": "monsterMouth",
+    "build_mode": "native",                   # 默认；下游无需插件。改 "deformer" 走插件版
     "seams": [{
         "mid":   "mid_CRV",                   # 中间曲线（缝线，各轨贴合到它）
         "rails": ["railA_CRV", "railB_CRV"],  # N 条轨曲线（有序，N≥1，默认 2）
@@ -90,6 +91,15 @@ ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
 
 > `zip_attr` 为可选字段：控制器上驱动属性的名字（缺省 / 留空即 `zip`）。给不同系统用不同属性名
 > （如 `mouthZip` / `eyeZip`）即可**用同一个控制器**分别驱动多套拉链，互不干扰。
+
+> **构建模式 `build_mode`（可选，默认 `native`）**：
+> - `native`：仅用 Maya 原生 DG 节点构建，**分发用 native 构建的绑定时下游无需安装本插件**——卸载/未装
+>   插件也能打开并动画。UI 里对应「下游需要安装插件」勾选框**保持不勾**。
+> - `deformer`：构建紧凑的 `ddZipperDeformer` 插件版（节点更少、性能更好），但下游**必须加载本插件**，
+>   否则 deformer 节点连同绑定会一起消失。UI 里**勾选**该框。
+>
+> 删除绑定：用 `from zipper_system.action import ZipperAction; ZipperAction.delete_rig(rig_root)`
+> 可连同 native 辅助节点 / deformer 节点一并干净删除，无残留。
 
 > 当前为**纯曲线版**：已移除网格 / Morph / 边 等模型相关功能（后续按需再加）。
 
