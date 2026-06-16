@@ -46,6 +46,23 @@ rig_spec = {
   `zipper_builder.delete_rig(rig_root)` 据此连同 deformer 节点（`zipperSeams[]`）一并清理，删除无残留。
 - `zipper_builder.build` 据 `build_mode` 派发；**native 分支不调用 `ensure_plugin_loaded`**（构建期也不需要插件）。
 
+#### 与 skinCluster 合成（变形顺序）
+
+拉链必须是 rail 变形链的**最后一个**变形器（在 skin 之后/下游），否则已闭合的 CV 仍被 rail 自身的 skin 二次位移
+（重复计算骨骼）。两模式各自的处理：
+
+- **deformer**：`cmds.deformer` 默认追加在链末端，故**先蒙皮、后建拉链**即正确（推荐流程）。若**先建后蒙皮**，
+  调 `ZipperAction.reorder_to_chain_end(rig_root)`（或菜单 *Reorder zipper after skin / 蒙皮后重排拉链*）把拉链
+  重排回链末端（`build/reorder.py`，对每个其它变形器 `reorderDeformers(zipperDef, d, rail)` 使拉链落到最后）。
+- **native**：采用**驱动/输出分离**——每条 rail 复制出一条隐藏 `<rail>_zipDriver`，把 rail 的 skin 迁到 driver
+  （重绑同名关节 + `copySkinWeights`），output rail 自身**不带 skin**、仅由拉链网络驱动。每个 CV 的 rest 由
+  `pointOnCurveInfo(driver.worldSpace, parameter=u_cv)` 实时提供（替换原静态 rest 常量）：`zip=0` → output=driver
+  （跟随骨骼）、`zip=1` → output=mid。无循环（driver≠output）、无变形顺序问题（output 仅此一个驱动）。driver 同样
+  message 标记进 `rig_root.zipperNativeNodes[]`，`delete_rig` 一并清理。
+  - **限制**：driver rest 经 `pointOnCurveInfo` 按 CV 参数采样，对 **degree-1 引导曲线精确**（CV 落在曲线上，
+    poci-参数=CV）；degree>1 时 poci 给「曲线上点」而非 CV，为与现有 native 一致的近似，本次不扩大处理。
+    output rail 不再自带 skin（skin 在 driver 上）——这是 plugin-free 蒙皮拉链的必要代价（两条曲线）。
+
 **已移除**（代码层）：`final_mesh` / `final_curve` / `mechanic` / `morph_*`、Edge 轨与网格 corr 烘焙、`build_morph.py`、`corr.py`。`core` 领域层（含 EdgeRail）保留备用。
 
 ---

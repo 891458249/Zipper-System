@@ -101,6 +101,13 @@ ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
 > 删除绑定：用 `from zipper_system.action import ZipperAction; ZipperAction.delete_rig(rig_root)`
 > 可连同 native 辅助节点 / deformer 节点一并干净删除，无残留。
 
+> **与蒙皮 (skinCluster) 配合**：拉链需排在 rail 变形链的**最后**（skin 之后），否则已闭合的 CV 会被 rail 自身
+> 的骨骼二次拖动。推荐流程：**先蒙皮 rail，再建拉链**。
+> - `deformer` 模式：若**先建拉链、后蒙皮**，建完蒙皮后点菜单 *Reorder zipper after skin / 蒙皮后重排拉链*
+>   （或 `ZipperAction.reorder_to_chain_end(rig_root)`）把拉链重排到链末端即可。
+> - `native` 模式：自动用「驱动/输出分离」——为每条 rail 建一条隐藏 driver 承载其 skin，output rail 由拉链驱动、
+>   自身不带 skin，故 `zip=0` 跟随骨骼、`zip=1` 贴到中间曲线，全程无需插件。对 **degree-1 引导曲线**最稳。
+
 > 当前为**纯曲线版**：已移除网格 / Morph / 边 等模型相关功能（后续按需再加）。
 
 ### 4. 验证
