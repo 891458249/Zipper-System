@@ -30,9 +30,8 @@ def smoke():
     rig_spec = {
         "name": "smokeZip",
         "seams": [{
-            "rail_a": rail_a,
             "mid": mid,
-            "rail_b": rail_b,
+            "rails": [rail_a, rail_b],
             "feather": 0.2,
             "direction": "both",
             "invert": False,
@@ -61,7 +60,7 @@ def smoke_validation():
     cmds.file(new=True, force=True)
     before = set(cmds.ls())
     bad = {"name": "bad", "seams": [
-        {"rail_a": "nope", "mid": "nope", "rail_b": "nope",
+        {"mid": "nope", "rails": ["nope", "nope"],
          "direction": "both", "controller": ""}]}
     try:
         zipper_builder.build(bad)

@@ -47,8 +47,8 @@ class _FakeCmds(object):
         return []
 
 
-def _spec(rail_a, mid, rail_b):
-    return {"seams": [{"rail_a": rail_a, "mid": mid, "rail_b": rail_b,
+def _spec(mid, rails):
+    return {"seams": [{"mid": mid, "rails": list(rails),
                        "direction": "both"}]}
 
 
@@ -63,23 +63,42 @@ def test_distinct_curves_pass(monkeypatch):
         "mid": "|grp|mid|midShape",
         "railB": "|grp|railB|railBShape",
     }
-    report = _run(monkeypatch, paths, _spec("railA", "mid", "railB"))
+    report = _run(monkeypatch, paths, _spec("mid", ["railA", "railB"]))
     assert report.ok
     assert 0 not in report.seam_errors or not report.seam_errors[0]
 
 
-def test_mid_same_object_as_rail_a_reports_seam_error(monkeypatch):
-    # mid and rail_a resolve to the SAME canonical shape path: degenerate seam.
+def test_variable_rail_count_pass(monkeypatch):
+    # N rails (here 3) all distinct from mid and each other: accepted.
+    paths = {
+        "mid": "|grp|mid|midShape",
+        "r0": "|grp|r0|r0Shape",
+        "r1": "|grp|r1|r1Shape",
+        "r2": "|grp|r2|r2Shape",
+    }
+    report = _run(monkeypatch, paths, _spec("mid", ["r0", "r1", "r2"]))
+    assert report.ok
+
+
+def test_empty_rails_reports_seam_error(monkeypatch):
+    paths = {"mid": "|grp|mid|midShape"}
+    report = _run(monkeypatch, paths, _spec("mid", []))
+    assert not report.ok
+    assert any("at least one rail" in m for m in report.seam_errors.get(0, []))
+
+
+def test_mid_same_object_as_a_rail_reports_seam_error(monkeypatch):
+    # mid and a rail resolve to the SAME canonical shape path: degenerate seam.
     shared = "|grp|railA|railAShape"
     paths = {
         "railA": shared,
         "mid": shared,
         "railB": "|grp|railB|railBShape",
     }
-    report = _run(monkeypatch, paths, _spec("railA", "mid", "railB"))
+    report = _run(monkeypatch, paths, _spec("mid", ["railA", "railB"]))
     assert not report.ok
     msgs = report.seam_errors.get(0, [])
-    assert any("distinct curves" in m for m in msgs)
+    assert any("different curve from mid" in m for m in msgs)
 
 
 def test_two_rails_same_object_reports_seam_error(monkeypatch):
@@ -89,6 +108,6 @@ def test_two_rails_same_object_reports_seam_error(monkeypatch):
         "mid": "|grp|mid|midShape",
         "railB": shared,
     }
-    report = _run(monkeypatch, paths, _spec("railA", "mid", "railB"))
+    report = _run(monkeypatch, paths, _spec("mid", ["railA", "railB"]))
     assert not report.ok
-    assert any("distinct curves" in m for m in report.seam_errors.get(0, []))
+    assert any("same curve" in m for m in report.seam_errors.get(0, []))

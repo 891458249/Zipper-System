@@ -102,22 +102,22 @@ def _conform_rail(rail, mid_rail, mid_plug, side, seam_index, params, rig_root):
 
 
 def build_seam(seam_spec, seam_index, rig_root=None):
-    """Build one curve seam: conform rail_a and rail_b onto mid. Returns the
-    created deformer node names."""
-    rail_a = CurveRail.from_handle(seam_spec["rail_a"])
-    rail_b = CurveRail.from_handle(seam_spec["rail_b"])
+    """Build one curve seam: conform every rail in ``rails`` onto the single mid
+    curve. Returns the created deformer node names (one per rail)."""
     mid = CurveRail.from_handle(seam_spec["mid"])
+    rails = [CurveRail.from_handle(h) for h in seam_spec["rails"]]
 
-    # Defense in depth: shape_name() is the resolved full DAG path, so if mid is
-    # the same curve as a rail (or the rails coincide) the conform would degrade
-    # to a rail conforming onto itself. Refuse before any node is created; the
-    # caller's transaction will undo() so no half-built rig is left behind.
-    a_shape, b_shape, mid_shape = (
-        rail_a.shape_name(), rail_b.shape_name(), mid.shape_name())
-    if mid_shape in (a_shape, b_shape) or a_shape == b_shape:
-        raise RuntimeError(
-            "seam %d: mid/rail_a/rail_b resolve to the same curve, refusing "
-            "to build" % seam_index)
+    # Defense in depth: shape_name() is the resolved full DAG path, so if a rail
+    # is really the mid curve (mid mis-picked as a rail, or a short-name
+    # collision) the conform would degrade to a rail conforming onto itself.
+    # Refuse before any node is created; the caller's transaction will undo() so
+    # no half-built rig is left behind.
+    mid_shape = mid.shape_name()
+    for j, rail in enumerate(rails):
+        if rail.shape_name() == mid_shape:
+            raise RuntimeError(
+                "seam %d: rail %d and mid resolve to the same curve, refusing "
+                "to build" % (seam_index, j))
 
     mid_plug = mid.world_plug()
     params = {
@@ -127,6 +127,7 @@ def build_seam(seam_spec, seam_index, rig_root=None):
         "controller": seam_spec.get("controller", ""),
     }
     return [
-        _conform_rail(rail_a, mid, mid_plug, "A", seam_index, params, rig_root),
-        _conform_rail(rail_b, mid, mid_plug, "B", seam_index, params, rig_root),
+        _conform_rail(rail, mid, mid_plug, "rail%d" % j, seam_index, params,
+                      rig_root)
+        for j, rail in enumerate(rails)
     ]

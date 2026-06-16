@@ -11,22 +11,24 @@
 
 > 维护者决策：先把**曲线**功能做完善，**移除所有模型相关功能**（网格变形 / 静态 Morph / Mesh 边轨），日后按需再加。下文 §1–§B 的网格/Morph/边相关内容暂作历史参考，当前实现以本节为准。
 
-**当前模型**：一条**缝 (Seam) = 三条 NURBS 曲线**：`rail_a` + `mid`（中间曲线）+ `rail_b`。
-- 控制器 `zip` 0→1：轨 A 与轨 B 的**每个 CV** 逐步贴合到 `mid`（缝线），`zip=1` 时**精确落在 mid 上**（wipe 前沿 `z·(1+β)` 保证满量完美贴合）。
+**当前模型**：一条**缝 (Seam) = 一条 `mid`（中间曲线）+ N 条 `rails`（轨曲线列表，N≥1，默认 2，无硬上限）**。
+- 控制器 `zip` 0→1：每条轨的**每个 CV** 逐步贴合到同一条 `mid`（缝线），`zip=1` 时**精确落在 mid 上**（wipe 前沿 `z·(1+β)` 保证满量完美贴合）。各轨各自独立贴合，互不影响。
 - 闭合顺序由 `direction`（both/ltr/rtl）+ `invert` + `feather` 控制（§3.3 修正版）。
-- 实现：每条轨各挂一个 `ddZipperDeformer`，把 `mid` 同时接到其两个轨输入（中线 `½(mid_k+mid_k)=mid_k`），`pairCount=该轨 CV 数`（全 CV 入成员，无遗漏）。
+- 实现：**每条轨各挂一个 `ddZipperDeformer`**，把 `mid` 同时接到其两个轨输入（中线 `½(mid_k+mid_k)=mid_k`），`pairCount=该轨 CV 数`（全 CV 入成员，无遗漏）。deformer 命名 `zipper_seam{i}_rail{j}_DEF`。
 
 **当前 `rig_spec`**：
 ```python
 rig_spec = {
   "name": str,
   "seams": [
-    {"rail_a": "<curveA>", "mid": "<curveMid>", "rail_b": "<curveB>",
+    {"mid": "<curveMid>", "rails": ["<curve0>", "<curve1>", ...],
      "feather": float, "direction": "both|ltr|rtl", "invert": bool,
      "controller": "<ctrl>"},
   ],
 }
 ```
+> `rails` 为有序列表，长度 N≥1（普通嘴用 2 条；多瓣怪嘴按需增减）。`mid` 与每条 rail 必须是**不同对象**，
+> 且 rails 之间也应两两不同（校验层按 shape 全路径判定，防「轨贴到自己 / 贴到另一条轨」）。
 
 **已移除**（代码层）：`final_mesh` / `final_curve` / `mechanic` / `morph_*`、Edge 轨与网格 corr 烘焙、`build_morph.py`、`corr.py`。`core` 领域层（含 EdgeRail）保留备用。
 

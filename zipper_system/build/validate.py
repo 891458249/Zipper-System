@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """Pre-build validation (curve-only).
 
-A seam is three NURBS curves: rail_a, mid, rail_b. Build is refused unless every
-curve exists and is a NURBS curve, so a failed validation has ZERO side effects.
-The same checks back the UI's Validate button (it highlights bad seam rows).
+A seam is one mid curve plus an ordered list of N rail curves (N >= 1). Build is
+refused unless mid and every rail exist and are NURBS curves, and mid is a
+different object from every rail (rails are also required pairwise distinct), so
+a failed validation has ZERO side effects. The same checks back the UI's
+Validate button (it highlights bad seam rows).
 """
 from __future__ import absolute_import, division, print_function
 
@@ -92,32 +94,41 @@ def validate(rig_spec):
         if not isinstance(seam, dict):
             report.add_seam(idx, "seam must be a dict")
             continue
-        _check_curve(report, idx, "rail_a", seam.get("rail_a"))
         _check_curve(report, idx, "mid", seam.get("mid"))
-        _check_curve(report, idx, "rail_b", seam.get("rail_b"))
 
-        # rail_a / mid / rail_b must be three distinct curves; if mid resolves to
-        # the same object as a rail (mis-pick or short-name collision) the rig
-        # silently builds wrong (a rail conforms to itself), so reject it here.
-        # Only compare handles that already resolved to curves -- a missing /
-        # non-curve handle is reported above and not re-flagged.
-        resolved = {}
-        for label in ("rail_a", "mid", "rail_b"):
-            handle = seam.get(label)
-            if isinstance(handle, string_types) and _is_curve(handle):
-                resolved[label] = _canonical(handle)
-        labels = list(resolved)
-        clashed = False
-        for i in range(len(labels)):
-            for j in range(i + 1, len(labels)):
-                a, b = resolved[labels[i]], resolved[labels[j]]
-                if a is not None and a == b:
-                    clashed = True
-        if clashed:
-            report.add_seam(
-                idx,
-                "rail_a / mid / rail_b must be three distinct curves "
-                "(mid cannot be the same object as a rail)")
+        rails = seam.get("rails")
+        if not isinstance(rails, (list, tuple)) or not rails:
+            report.add_seam(idx, "rails: pick at least one rail curve")
+            rails = []
+        for j, rail in enumerate(rails):
+            _check_curve(report, idx, "rail %d" % j, rail)
+
+        # mid must be a different object from every rail (a rail conforming onto
+        # itself zips nowhere); rails must also be pairwise distinct. Compare
+        # canonical shape paths and only for handles that already resolved to
+        # curves -- a missing / non-curve handle is reported above, not re-flagged.
+        mid_handle = seam.get("mid")
+        mid_canon = (_canonical(mid_handle)
+                     if isinstance(mid_handle, string_types)
+                     and _is_curve(mid_handle) else None)
+        rail_canon = []
+        for j, rail in enumerate(rails):
+            if isinstance(rail, string_types) and _is_curve(rail):
+                rail_canon.append((j, _canonical(rail)))
+        if mid_canon is not None:
+            for j, canon in rail_canon:
+                if canon is not None and canon == mid_canon:
+                    report.add_seam(
+                        idx, "rail %d must be a different curve from mid "
+                        "(a rail cannot be the same object as mid)" % j)
+        for a in range(len(rail_canon)):
+            for b in range(a + 1, len(rail_canon)):
+                ja, ca = rail_canon[a]
+                jb, cb = rail_canon[b]
+                if ca is not None and ca == cb:
+                    report.add_seam(
+                        idx, "rail %d and rail %d are the same curve "
+                        "(rails must be distinct)" % (ja, jb))
 
         direction = seam.get("direction", "both")
         if direction not in VALID_DIRECTIONS:

@@ -75,9 +75,8 @@ from zipper_system.action import ZipperAction
 rig_spec = {
     "name": "monsterMouth",
     "seams": [{
-        "rail_a": "railA_CRV",       # 一侧曲线
-        "mid":    "mid_CRV",         # 中间曲线（缝线，两轨贴合到它）
-        "rail_b": "railB_CRV",       # 另一侧曲线
+        "mid":   "mid_CRV",                   # 中间曲线（缝线，各轨贴合到它）
+        "rails": ["railA_CRV", "railB_CRV"],  # N 条轨曲线（有序，N≥1，默认 2）
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": "jaw_zip_CTRL",
     }],
@@ -85,8 +84,8 @@ rig_spec = {
 ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
 ```
 
-每条缝 = **轨 A + 中间曲线 + 轨 B** 三条 NURBS 曲线。构建后拖动 `jaw_zip_CTRL.zip`（0→1）：
-轨 A、轨 B 逐步贴合到中间曲线，`zip=1` 时两轨精确落在中间曲线上（两端先合、中央后合）。
+每条缝 = **一条中间曲线 + N 条轨曲线**（`rails` 列表，普通嘴用 2 条，多瓣怪嘴按需增减）。构建后拖动
+`jaw_zip_CTRL.zip`（0→1）：每条轨逐步贴合到中间曲线，`zip=1` 时所有轨精确落在中间曲线上（两端先合、中央后合）。
 
 > 当前为**纯曲线版**：已移除网格 / Morph / 边 等模型相关功能（后续按需再加）。
 
