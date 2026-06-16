@@ -96,7 +96,7 @@ def test_reject_mid_equals_rail_a():
     rail_b = cmds.ls(_line_curve("railB", 2.0), long=True)[0]
     # mid mis-picked as rail_a (the exact degeneration: B->A, A static).
     spec = {"name": "bad", "seams": [{
-        "rail_a": rail_a, "mid": rail_a, "rail_b": rail_b,
+        "mid": rail_a, "rails": [rail_a, rail_b],
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": "",
     }]}
@@ -104,8 +104,8 @@ def test_reject_mid_equals_rail_a():
     report = validate(spec)
     check(not report.ok, "validate() rejects mid==rail_a seam")
     msgs = report.seam_errors.get(0, [])
-    check(any("distinct" in m for m in msgs),
-          "rejection message mentions 'distinct': %r" % (msgs,))
+    check(any("different curve from mid" in m for m in msgs),
+          "rejection message names the mid clash: %r" % (msgs,))
 
     before = len(cmds.ls(type="ddZipperDeformer") or [])
     raised = False
@@ -133,7 +133,7 @@ def test_regression_converge_to_mid():
     ctrl = cmds.spaceLocator(name="zipCTRL")[0]
 
     spec = {"name": "good", "seams": [{
-        "rail_a": rail_a, "mid": mid, "rail_b": rail_b,
+        "mid": mid, "rails": [rail_a, rail_b],
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": ctrl,
     }]}
