@@ -48,6 +48,23 @@ def _tag_native(node, rig_root):
 def _conform_rail_native(rail, mid_rail, mid_plug, side, seam_index, params,
                          zip_plug, rig_root):
     """Wire the native per-CV node chains conforming *rail* onto the mid curve."""
+    # Native mode drives railShape.controlPoints[cv] with ABSOLUTE local coords.
+    # controlPoints is absolute only on a history-free curve; with construction
+    # history (e.g. a makeNurbCircle, common on real rig curves) it is a TWEAK
+    # added on top of the .create input -- an absolute value would then double
+    # (rest + rest), flinging the rail to ~2x rest so it looks like it vanished
+    # and the zip slider seems dead (motion happens off-screen). Delete the
+    # rail's history first to collapse it to history-free, making the existing
+    # absolute connection correct; it's a no-op when there's no history. This
+    # also gives zipper exclusive ownership of the rail shape, which native mode
+    # requires. NEVER delete mid's history -- it is the read-only driver and may
+    # carry its own animation/deformation. CV world positions are unchanged by
+    # this, so the rest sampling below is unaffected.
+    rail_xform = cmds.listRelatives(rail.shape_name(), parent=True,
+                                    fullPath=True)
+    if rail_xform:
+        cmds.delete(rail_xform[0], constructionHistory=True)
+
     comp_pts, comp_ids, token = rail.component_world_points()
     m = len(comp_ids)
     if m < 2:
