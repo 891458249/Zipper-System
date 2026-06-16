@@ -132,9 +132,22 @@ class ZipperWidget(QtWidgets.QWidget):
         grid.addWidget(self.invert_chk, r, 1)
         grid.addWidget(HelpButton("invert_wipe"), r, 2); r += 1
 
+        # Controller row: picker on the left, custom zip-attribute name on the
+        # right. Distinct attr names (mouthZip / eyeZip ...) let one controller
+        # drive several independent zipper systems.
         self.ctrl_field = _PickField(
             selection.get_selected_node, "nothing_picked")
-        self._add_grid_row(grid, r, "controller", self.ctrl_field); r += 1
+        self.ctrl_attr_edit = QtWidgets.QLineEdit("zip")
+        self.ctrl_attr_edit.setPlaceholderText("zip")
+        self.ctrl_attr_edit.setToolTip(tr("controller_attr"))
+        self.ctrl_attr_edit.setMaximumWidth(120)
+        ctrl_container = QtWidgets.QWidget()
+        ctrl_lay = QtWidgets.QHBoxLayout(ctrl_container)
+        ctrl_lay.setContentsMargins(0, 0, 0, 0)
+        ctrl_lay.addWidget(self.ctrl_field, 1)
+        ctrl_lay.addWidget(self.ctrl_attr_edit)
+        ctrl_lay.addWidget(HelpButton("controller_attr"))
+        self._add_grid_row(grid, r, "controller", ctrl_container); r += 1
         root.addLayout(grid)
 
         # actions
@@ -178,6 +191,7 @@ class ZipperWidget(QtWidgets.QWidget):
         self.dir_combo.blockSignals(False)
         self.invert_chk.setText(tr("invert_wipe"))
         self.ctrl_field.retranslate()
+        self.ctrl_attr_edit.setToolTip(tr("controller_attr"))
         self.validate_btn.setText(tr("validate"))
         self.build_btn.setText(tr("build"))
         for _item, row in self._seam_rows:
@@ -224,6 +238,7 @@ class ZipperWidget(QtWidgets.QWidget):
                 "direction": direction,
                 "invert": self.invert_chk.isChecked(),
                 "controller": self.ctrl_field.text(),
+                "zip_attr": self.ctrl_attr_edit.text().strip() or "zip",
             })
             seams.append(spec)
         return {

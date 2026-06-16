@@ -28,11 +28,11 @@ def _set_int_array(node_attr, values):
     cmds.setAttr(node_attr, list(values), type="Int32Array")
 
 
-def _ensure_zip_attr(controller):
-    if not cmds.attributeQuery("zip", node=controller, exists=True):
-        cmds.addAttr(controller, longName="zip", attributeType="double",
+def _ensure_zip_attr(controller, attr="zip"):
+    if not cmds.attributeQuery(attr, node=controller, exists=True):
+        cmds.addAttr(controller, longName=attr, attributeType="double",
                      min=0.0, max=1.0, defaultValue=0.0, keyable=True)
-    return "%s.zip" % controller
+    return "%s.%s" % (controller, attr)
 
 
 def _align_component_ids(comp_pts, comp_ids, target_pts):
@@ -100,7 +100,7 @@ def _conform_rail(rail, mid_rail, mid_plug, side, seam_index, params, rig_root):
 
     controller = params.get("controller")
     if controller and cmds.objExists(controller):
-        cmds.connectAttr(_ensure_zip_attr(controller),
+        cmds.connectAttr(_ensure_zip_attr(controller, params.get("zip_attr", "zip")),
                          "%s.zip" % node, force=True)
     _tag_rig(node, rig_root)
     return node
@@ -130,6 +130,7 @@ def build_seam(seam_spec, seam_index, rig_root=None):
         "direction": seam_spec.get("direction", "both"),
         "invert": bool(seam_spec.get("invert", False)),
         "controller": seam_spec.get("controller", ""),
+        "zip_attr": (seam_spec.get("zip_attr") or "zip"),
     }
     return [
         _conform_rail(rail, mid, mid_plug, "rail%d" % j, seam_index, params,

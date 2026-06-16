@@ -81,6 +81,10 @@ _EN = {
         u"The control object whose 'zip' attribute (0..1) drives this seam's "
         u"closure. If it has no 'zip' attribute one is added automatically and "
         u"connected. Press '<' with the controller selected.",
+    "controller_attr":
+        u"Name of the zip attribute created on the controller. Use distinct "
+        u"names (e.g. mouthZip, eyeZip) to drive several independent zipper "
+        u"systems from a single controller. Default: zip.",
     "mechanic":
         u"Closure mechanic:\n"
         u"  Dynamic midline - a live deformer recomputes the midline every "
@@ -159,6 +163,9 @@ _ZH = {
     "controller":
         u"驱动本缝闭合的控制器，其 'zip' 属性 (0..1) 控制闭合量。若没有 'zip' 属性会自动添加并连接。"
         u"选中控制器后点 '<'。",
+    "controller_attr":
+        u"在控制器上创建的 zip 属性的名字。给不同拉链系统用不同名字（如 mouthZip、eyeZip），"
+        u"即可用同一个控制器分别驱动多套拉链，互不干扰。默认：zip。",
     "mechanic":
         u"闭合机制：\n"
         u"  动态中线 —— 实时 deformer 每帧重算中线，密封线跟随嘴部运动（sticky-lips 手感），"

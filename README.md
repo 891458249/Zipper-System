@@ -79,6 +79,7 @@ rig_spec = {
         "rails": ["railA_CRV", "railB_CRV"],  # N 条轨曲线（有序，N≥1，默认 2）
         "feather": 0.15, "direction": "both", "invert": False,
         "controller": "jaw_zip_CTRL",
+        "zip_attr": "zip",                    # 可选：控制器上的驱动属性名（默认 zip）
     }],
 }
 ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
@@ -86,6 +87,9 @@ ZipperAction.build(rig_spec)          # 校验→建图，返回 rig root
 
 每条缝 = **一条中间曲线 + N 条轨曲线**（`rails` 列表，普通嘴用 2 条，多瓣怪嘴按需增减）。构建后拖动
 `jaw_zip_CTRL.zip`（0→1）：每条轨逐步贴合到中间曲线，`zip=1` 时所有轨精确落在中间曲线上（两端先合、中央后合）。
+
+> `zip_attr` 为可选字段：控制器上驱动属性的名字（缺省 / 留空即 `zip`）。给不同系统用不同属性名
+> （如 `mouthZip` / `eyeZip`）即可**用同一个控制器**分别驱动多套拉链，互不干扰。
 
 > 当前为**纯曲线版**：已移除网格 / Morph / 边 等模型相关功能（后续按需再加）。
 

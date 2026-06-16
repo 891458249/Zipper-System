@@ -23,12 +23,14 @@ rig_spec = {
   "seams": [
     {"mid": "<curveMid>", "rails": ["<curve0>", "<curve1>", ...],
      "feather": float, "direction": "both|ltr|rtl", "invert": bool,
-     "controller": "<ctrl>"},
+     "controller": "<ctrl>", "zip_attr": "zip"},
   ],
 }
 ```
 > `rails` 为有序列表，长度 N≥1（普通嘴用 2 条；多瓣怪嘴按需增减）。`mid` 与每条 rail 必须是**不同对象**，
 > 且 rails 之间也应两两不同（校验层按 shape 全路径判定，防「轨贴到自己 / 贴到另一条轨」）。
+> `zip_attr` 为控制器上驱动属性的名字（缺省 / 留空即 `zip`）；不同系统用不同属性名（如 `mouthZip` / `eyeZip`）
+> 即可**共用一个控制器**分别驱动多套拉链，互不冲突。
 
 **已移除**（代码层）：`final_mesh` / `final_curve` / `mechanic` / `morph_*`、Edge 轨与网格 corr 烘焙、`build_morph.py`、`corr.py`。`core` 领域层（含 EdgeRail）保留备用。
 

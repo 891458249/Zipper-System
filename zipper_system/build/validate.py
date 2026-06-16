@@ -9,11 +9,18 @@ Validate button (it highlights bad seam rows).
 """
 from __future__ import absolute_import, division, print_function
 
+import re
+
 from maya import cmds
 
 from ..core._compat import string_types
 
 VALID_DIRECTIONS = ("both", "ltr", "rtl")
+# Maya long-name attribute identifier: letter/underscore then word chars.
+_ATTR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# Numeric scalar attribute types the zip attr may safely connect to.
+_NUMERIC_ATTR_TYPES = ("double", "float", "doubleLinear", "doubleAngle",
+                       "long", "short")
 
 
 class ValidationReport(object):
@@ -138,5 +145,25 @@ def validate(rig_spec):
         controller = seam.get("controller")
         if controller and not _obj_exists(controller):
             report.add_seam(idx, "controller %r does not exist" % (controller,))
+
+        # zip attribute name: a single controller can host several independent
+        # zipper systems via distinct attr names (e.g. mouthZip / eyeZip).
+        zip_attr = seam.get("zip_attr") or "zip"
+        if not _ATTR_NAME_RE.match(zip_attr):
+            report.add_seam(
+                idx, "zip attribute name %r is not a valid attribute identifier"
+                % (zip_attr,))
+        elif controller and _obj_exists(controller) and cmds.attributeQuery(
+                zip_attr, node=controller, exists=True):
+            # Already on the controller -> must be a numeric scalar we can drive.
+            try:
+                attr_type = cmds.attributeQuery(
+                    zip_attr, node=controller, attributeType=True)
+            except RuntimeError:
+                attr_type = None
+            if attr_type not in _NUMERIC_ATTR_TYPES:
+                report.add_seam(
+                    idx, "attribute %r already exists on controller and is not "
+                    "a numeric zip attribute" % (zip_attr,))
 
     return report
