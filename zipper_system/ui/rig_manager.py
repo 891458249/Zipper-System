@@ -36,7 +36,7 @@ class RigManagerWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent)
         self._roots = []          # rig_root full path per table row
         self._build_ui()
-        self._retranslate()
+        self.retranslate()
 
     # -- construction --------------------------------------------------- #
     def _build_ui(self):
